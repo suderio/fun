@@ -1,8 +1,8 @@
 # fun
 
-## Exemplos
+## Examples
 
-### Expressões
+### Expressions
 
 ```
 [1 + 1]
@@ -80,6 +80,71 @@ sum(1, 2)
 > 3
 ```
 
+aSum: [a + b]
+aSum(1, 2)
+> 3
+aSum(a: 1, b: 2)
+> 3
+
+### Loops
 
 
+
+### Everything together
+
+```
+a: {1, 2, 3}
+
+a()
+> {1, 2, 3}
+
+a(0)
+> 1
+
+a(0, 1)
+> {1, 2}
+
+a(-1)
+> 3
+
+a(1, -1)
+> {2, 3}
+
+a(-1, 1)
+> {3, 2}
+
+lenght(a)
+> 3
+
+fib: {
+    0: 0,
+    1: 1,
+    2: 1,
+     : fib[it - 1] + fib[it - 2]
+}
+
+lenght(fib)
+> 3
+
+x: {a: 1, b: 2}
+
+x()
+> {a: 1, b: 2, c: 3}
+
+x(a)
+> 1
+
+x(a, c)
+> {1, 3}
+
+s: "abc"
+
+s()
+> "abc"
+
+s(0)
+> "a"
+
+s(0, 1)
+> "ab"
 
