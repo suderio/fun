@@ -12,54 +12,6 @@
 ```
 2 + (3 * 4)
 > 14
-
-4!
-> 24
-
-2^3
-> 8
-
-"ab" * 3
-> "ababab"
-
-"ab" + "c"
-> "abc"
-
-"c" + "ab"
-> "cab"
-
-{1, 2} + {3}
-> {1, 2, 3}
-
-{1, 2} + 3
-> {4, 5}
-
-1 + "a"
-> "1a"
-
-"1a1" - 1
-> "a1"
-
-"1a1" / 1
-> "a"
-
-1 - "1a1"
-> ""
-
-"ababab" / 3
-> {"ab", "cd", "ef"}
-
-"a" / 3
-> {"a", "", ""}
-
-"ab" * "cd"
-> "acadbcbd"
-
-"abc" / "c"
-> "ab"
-
-3 / "a"
-> ""
 ```
 
 ### Arrays
@@ -84,8 +36,7 @@ abc
 xpto
 """
 
-{name: "world!"} | "Hello $name"
-
+"Hello $name" {name: "world!"};
 ```
 
 ### Labels
@@ -93,17 +44,17 @@ xpto
 a: 1
 ```
 ```
-b: {1, 2 }
+b: {1, 2}
 ```
 ```
 c: {a: 1, b: 2}
 ```
 ```
-{0} | b
+b {0} 
 > 1
 ```
 ```
-{a} | c
+c {a} 
 > 1
 ```
 
@@ -114,64 +65,63 @@ c: {a: 1, b: 2}
 fact: {
   0: 1,
   1: 1,
-  *: {0' - 1} | this
+  *: this {0' - 1}
 }
-{3} | fact
+fact {3} 
 > 6
 ```
 
 #### Sum of two numbers: `n | it` is the idiom for the nth element of the argument array
 ```
 sum: {
-  *: {0} | it + {1} | it 
+  *: it {0} + it {1}
 }
-{1, 2} | sum
+sum {1, 2}
 > 3
 ```
 
 #### Expressions with unbounded labels define functions (surrounded by `[]`)
 ```
 aSum: [a + b]
-{1, 2} | aSum
+aSum {1, 2} 
 > 3
 
-{a: 1, b: 2} | aSum
+aSum {a: 1, b: 2}
 > 3
 ```
 
 #### Maps
 ```
-fact | {2, 3}
+{2, 3} fact
 > {2, 6}
-sum | {1, 2}
+{1, 2} sum
 > null
-sum | {{1, 2}, {1, 3}}
+{{1, 2}, {1, 3}} sum
 > {2, 5}
-
 ```
 
 #### Filters
 ```
-{a, b} | {a: 1, b: 2, c: 3}
+{a: 1, b: 2, c: 3} {a, b} 
 > {a: 1, b: 2}
 
-{a: 1, b: 2, c:3} | {a, b}
+{a, b} {a: 1, b: 2, c:3} 
 > {}
 
-{a: 1, b: 2, c:3} | {a: 1, b: 3}
+{a: 1, b: 3} {a: 1, b: 2, c:3} 
 > {a: 1}
 ```
 
 ### Stdin, Stdout, Stderr
 ```
-"Hello World!" |> 
+<< "Hello World!"  
 > "Hello World!"
 
-{name} >| "Hello ${name}" |>
+<< "Hello ${name}" {name} >>
 > World!
 > Hello World!
 
-"Error!" |&>
+<!< "Error!"
 > "Error!"
 ```
 
@@ -180,70 +130,69 @@ sum | {{1, 2}, {1, 3}}
 ```
 a: {1, 2, 3}
 
-{} | a
+a {}
 > {1, 2, 3}
 
-{0} | a
+a {0}
 > 1
 
-{0, 1} | a
+a {0, 1}
 > {1, 2}
 
-{-1} | a
+a {-1}
 > 3
 
-{1, -1} | a
+a {1, -1}
 > {2, 3}
 
-{-1, 1} | a
+a {-1, 1}
 > {3, 2}
 
-a | lenght
+lenght a
 > 3
 
-lenght:  1' = null and 1 or 1 + {1, -1} | it | this
+lenght: {true: 1, false: 1 + this it {1, *}} {1' = null};
+lenght: 1' = null ? { 1, 1 + this it {1, *}};
 
 fib: {
     0: 0,
     1: 1,
     2: 1,
-    *: 0' - 1 | this + 0' - 2 | this
+    *: this (0' - 1) + this (0' - 2)
 }
 
-fib | lenght
+lenght fib
 > 4
 
 x: {a: 1, b: 2}
 
-{} | x
+x {}
 > {a: 1, b: 2}
 
-{a} | x
+x {a}
 > 1
 
-{a, c} | x
+x {a, c}
 > {1, 3}
 
 s: "abc"
 
-{} | s
+s {}
 > "abc"
 
-{0} | s
+s {0}
 > "a"
 
-{0, 1} | s
+s {0, 1}
 > "ab"
 ```
 
 ### Syntatic Sugar
 
 ```
-0 | * -> 0'
+it {a}  -> a'
 
-a | * -> a'
-
-0 | it -> 0'
+it {0} -> 0'
 ```
 
 ### Keywords
@@ -252,3 +201,31 @@ a | * -> a'
 - null
 - true
 - false
+
+### Operators
+
+- arithm: + - * / % ( )
+- logic: < > <= >= <> = & && | || ~ (not) ^ (xor)
+- string: $ (string substitution) 
+- language: { } [ ] ' # (comment) : , ; << >> <\!< @ ?
+- \ (latex strings) 
+
+### Imports
+```
+- someImport: fun >> @/someFile.fun
+- anotherImport: >> fun @http://github.com/someRepo/someFile.fun
+- iso-8891: (fun >> @strings.fun) iso-8891
+```
+
+### Files
+```
+- someString: iso-8891 >> @/someFile.txt
+```
+
+### Namespace
+
+File based namespace: At each file you define (rename) the imports, and each valid
+fun file is a Dictionary. By filtering the keys you can import only one element of
+the file.
+
+
