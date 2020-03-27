@@ -1,4 +1,4 @@
 fun
-fun.lex.c
+lex.yy.c
 fun.tab.c
 fun.tab.h

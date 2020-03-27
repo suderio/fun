@@ -10,6 +10,7 @@ integer {digit}+
 exponent [eE][+-]?{integer}
 real {integer}("."{integer})?{exponent}?
 
+%option yylineno
 %%
 
 {white} { }

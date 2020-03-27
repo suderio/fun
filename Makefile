@@ -3,9 +3,14 @@
 #
 # @file
 # @version 0.1
+#
 
-fun: fun.y fun.lex
+fun: lex.yy.c fun.tab.c
+	gcc -o fun lex.yy.c fun.tab.c -lfl -lm
+
+lex.yy.c: fun.lex
+	flex fun.lex
+
+fun.tab.c: fun.y
 	bison -d fun.y
-	flex  -o fun.lex.c fun.lex
-	gcc  -o fun fun.lex.c fun.tab.c -lfl -lm
 # end
