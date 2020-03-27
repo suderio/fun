@@ -67,9 +67,9 @@ Really arrays with a key:value element. The key can be a label, a number, a bool
 * {a: 0, b: 1}
 * {true: "Ok", false: "KO"}
 
-A special element, `*` means "any element", to be used in filter expressions.
+A special element, `.` means "any element", to be used in filter expressions.
 
-* {"this": 0, "that": 1, *\***** ***: -1}
+* {"this": 0, "that": 1, .: -1}
 
 A reserved word, `this`, means the dictionary itself, allowing recursive definitions.
 
@@ -79,13 +79,13 @@ A reserved word, `null`, means no value at all, and is equal to no value, includ
 
 An expression in error will return `null` and, hopefully, an error message.
 
-| Obs: Every array or dictionary has the same structure, an array of Entries.
-| In an arrray the keys are the same as the index, in an dictionary they can be
-| different. Therefore they are also sets of Entries (there cannot be two equal keys)
+> Obs: Every array or dictionary has the same structure, an array of Entries.
+> In an arrray the keys are the same as the index, in an dictionary they can be
+> different. Therefore they are also sets of Entries (there cannot be two equal keys)
 
-| Obs.: A dictionary may be made without some keys (ex.: `{a: 0, 1, 2}`). This
-| will be the same as `{a: 0, 1: 1, 2: 2}`. This is why a valid file can be a
-| list of valid expressions.
+> Obs.: A dictionary may be made without some keys (ex.: `{a: 0, 1, 2}`). This
+> will be the same as `{a: 0, 1: 1, 2: 2}`. This is why a valid file can be a
+> list of valid expressions.
 
 ### Expressions
 
@@ -102,7 +102,7 @@ Two arrays / dictionaries with no operator between them filters the left one wit
 
 A reserved word, `it` means the entire right array / dictionary that is being operated on the left.
 
-* {a: it} {0, 1} = {a: {0, 1}}
+* {a: it} {a, 1} = {a: {0, 1}}
 * {0, it + 1} {0} = {0, {1}}
 * {0, 1} {it} = {0 = it ? {it, null}, 1 = it ? {it, null}}
 
@@ -172,7 +172,7 @@ c {a}
 
 ### Functions
 
-#### Factorial using the any (`*`) element
+#### Factorial using the any (`.`) element
 
 f g -> returns every element of g from f
 
@@ -181,7 +181,7 @@ problem: arguments can be numbers / strings or just dicts?
 fact: {
   0: 1,
   1: 1,
-  *: this {0' - 1}
+  .: this {0' - 1}
 }
 fact {3}
 > 6
@@ -190,7 +190,7 @@ fact {3}
 #### Sum of two numbers: `it n` is the idiom for the nth element of the argument array
 ```
 sum: {
-  *: it {0} + it {1}
+  .: it {0} + it {1}
 }
 sum {1, 2}
 > 3
@@ -208,7 +208,7 @@ aSum {a: 1, b: 2}
 
 #### Maps
 
-A function (dict) with a `*` element will apply to every element of the filtered function
+A function (dict) with a `.` element will apply to every element of the filtered function
 ```
 {2, 3} fact
 > {2, 6}
@@ -269,14 +269,14 @@ a {-1, 1}
 lenght a
 > 3
 
-lenght: {true: 1, false: 1 + this it {1, *}} {1' = null};
-lenght: 1' = null ? { 1, 1 + this it {1, *}};
+lenght: {true: 1, false: 1 + this it {1, .}} {1' = null};
+lenght: 1' = null ? { 1, 1 + this it {1, .}};
 
 fib: {
     0: 0,
     1: 1,
     2: 1,
-    *: this (0' - 1) + this (0' - 2)
+    .: this (0' - 1) + this (0' - 2)
 }
 
 lenght fib
