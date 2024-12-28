@@ -1,14 +1,13 @@
 package net.technearts.lang.fun;
 
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static java.lang.String.valueOf;
-import static net.technearts.lang.fun.CastUtils.toNumber;
+import static net.technearts.lang.fun.Nil.NULL;
 
 public class FunListenerImpl extends FunBaseListener {
     private final ExecutionEnvironment env;
@@ -38,17 +37,17 @@ public class FunListenerImpl extends FunBaseListener {
 
     @Override
     public void exitIntegerExp(FunParser.IntegerExpContext ctx) {
-        env.push(Integer.parseInt(ctx.INTEGER().getText()));
+        env.push(new BigInteger(ctx.INTEGER().getText()));
     }
 
     @Override
     public void exitDecimalExp(FunParser.DecimalExpContext ctx) {
-        env.push(Double.parseDouble(ctx.DECIMAL().getText()));
+        env.push(new BigDecimal(ctx.DECIMAL().getText()));
     }
 
     @Override
     public void exitStringLiteral(FunParser.StringLiteralContext ctx) {
-        env.push(ctx.STRING().getText().replaceAll("^\"|\"$", ""));
+        env.push(ctx.SIMPLESTRING().getText().replaceAll("^\"|\"$", ""));
     }
 
     @Override
@@ -63,22 +62,23 @@ public class FunListenerImpl extends FunBaseListener {
 
     @Override
     public void exitNullLiteral(FunParser.NullLiteralContext ctx) {
-        env.push(null);
+        env.push(NULL);
     }
 
     @Override
     public void exitIdAtomExp(FunParser.IdAtomExpContext ctx) {
         String variableName = ctx.ID().getText();
-        if (!env.contains(variableName)) {
-            throw new RuntimeException("Variável não definida: " + variableName);
+        if (env.isMissing(variableName)) {
+            env.push(NULL);
+            // TODO warn about null result
         }
         env.push(env.get(variableName));
     }
 
     @Override
     public void exitAddSubExp(FunParser.AddSubExpContext ctx) {
-        Number right = toNumber(env.pop());
-        Number left = toNumber(env.pop());
+        var right = env.pop();
+        var left = env.pop();
         if (right instanceof BigDecimal || left instanceof BigDecimal) {
             if (ctx.getChild(1).getText().equals("+")) {
                 env.push((new BigDecimal(valueOf(left))).add((new BigDecimal(valueOf(right)))));
@@ -87,41 +87,41 @@ public class FunListenerImpl extends FunBaseListener {
             }
         } else {
             if (ctx.getChild(1).getText().equals("+")) {
-                env.push(((BigInteger)left).add(((BigInteger) right)));
+                env.push(((BigInteger) left).add(((BigInteger) right)));
             } else {
-                env.push(((BigInteger)left).subtract(((BigInteger) right)));
+                env.push(((BigInteger) left).subtract(((BigInteger) right)));
             }
         }
     }
 
     @Override
     public void exitMulDivModExp(FunParser.MulDivModExpContext ctx) {
-        Object right = env.pop();
-        Object left = env.pop();
+        var right = new BigDecimal(valueOf(env.pop()));
+        var left = new BigDecimal(valueOf(env.pop()));
         switch (ctx.getChild(1).getText()) {
             case "*":
-                env.push(((Number) left).doubleValue() * ((Number) right).doubleValue());
+                env.push(left.multiply(right));
                 break;
             case "/":
-                env.push(((Number) left).doubleValue() / ((Number) right).doubleValue());
+                env.push(left.divide(right, env.getMathContext()));
                 break;
             case "%":
-                env.push(((Number) left).doubleValue() % ((Number) right).doubleValue());
+                env.push(left.remainder(right, env.getMathContext()));
                 break;
         }
     }
 
     @Override
     public void exitComparisonExp(FunParser.ComparisonExpContext ctx) {
-        Object right = env.pop();
-        Object left = env.pop();
+        var right = new BigDecimal(valueOf(env.pop()));
+        var left = new BigDecimal(valueOf(env.pop()));
         boolean result = switch (ctx.getChild(1).getText()) {
-            case "=" -> Objects.equals(left, right);
-            case "<>", "~=" -> !Objects.equals(left, right);
-            case "<" -> ((Number) left).doubleValue() < ((Number) right).doubleValue();
-            case "<=" -> ((Number) left).doubleValue() <= ((Number) right).doubleValue();
-            case ">" -> ((Number) left).doubleValue() > ((Number) right).doubleValue();
-            case ">=" -> ((Number) left).doubleValue() >= ((Number) right).doubleValue();
+            case "=" -> left.compareTo(right) == 0;
+            case "<>", "~=" -> left.compareTo(right) != 0;
+            case "<" -> left.compareTo(right) < 0;
+            case "<=" -> left.compareTo(right) <= 0;
+            case ">" -> left.compareTo(right) > 0;
+            case ">=" -> left.compareTo(right) >= 0;
             default -> throw new RuntimeException("Operador de comparação desconhecido.");
         };
         env.push(result);
@@ -131,17 +131,141 @@ public class FunListenerImpl extends FunBaseListener {
     public void exitNullTestExp(FunParser.NullTestExpContext ctx) {
         Object right = env.pop();
         Object left = env.pop();
-        env.push(left != null ? left : right);
+        env.push(left != NULL ? left : right);
     }
 
     @Override
     public void exitTableConstruct(FunParser.TableConstructContext ctx) {
-        List<Object> table = new ArrayList<>();
-        for (int i = 0; i < ctx.expression().size(); i++) {
-            table.add(env.pop());
+        Table table = new Table();
+        while (!env.isEmpty()) {
+            table.put(env.last());
         }
-        Collections.reverse(table); // Os elementos são empilhados em ordem reversa
         env.push(table);
     }
+
+    @Override
+    public void exitAndExp(FunParser.AndExpContext ctx) {
+        boolean right = (boolean) env.pop();
+        boolean left = (boolean) env.pop();
+        env.push(left && right);
+    }
+
+    @Override
+    public void exitOrExp(FunParser.OrExpContext ctx) {
+        boolean right = (boolean) env.pop();
+        boolean left = (boolean) env.pop();
+        env.push(left || right);
+    }
+
+    @Override
+    public void exitXorExp(FunParser.XorExpContext ctx) {
+        boolean right = (boolean) env.pop();
+        boolean left = (boolean) env.pop();
+        env.push(left ^ right);
+    }
+
+    @Override
+    public void exitCallExp(FunParser.CallExpContext ctx) {
+        String functionName = ctx.ID().getText();
+        Object argument = env.pop();
+
+        if (env.isMissing(functionName)) {
+            throw new RuntimeException("Função ou operador não definido: " + functionName);
+        }
+
+        // Avalia a função como um operador unário
+        FunParser.ExpressionContext body = (FunParser.ExpressionContext) env.get(functionName);
+        env.put("it", argument); // Define o "it" para o argumento da função
+        new ParseTreeWalker().walk(this, body); // Avalia o corpo da função
+    }
+
+    @Override
+    public void exitThisExp(FunParser.ThisExpContext ctx) {
+        if (env.isMissing("this")) {
+            throw new RuntimeException("`this` não está definido no contexto atual.");
+        }
+        env.push(env.get("this"));
+    }
+
+    @Override
+    public void exitDerefExp(FunParser.DerefExpContext ctx) {
+        Object key = env.pop();
+        Object base = env.pop();
+
+        if (base instanceof Map) {
+            env.push(((Map<?, ?>) base).get(key));
+        } else if (base instanceof List) {
+            env.push(((List<?>) base).get(((Number) key).intValue()));
+        } else {
+            throw new RuntimeException("Dereferência inválida em tipo: " + base.getClass());
+        }
+    }
+
+    @Override
+    public void exitTableConcatSep(FunParser.TableConcatSepContext ctx) {
+        var left = env.pop();
+        Table table;
+        if (left instanceof Table) {
+            table = (Table) left;
+        } else {
+            table = new Table();
+            table.put(left);
+        }
+        table.push(env.pop());
+        env.push(table);
+    }
+
+    @Override
+    public void exitUnaryExp(FunParser.UnaryExpContext ctx) {
+        Object operand = env.pop();
+        switch (ctx.getChild(0).getText()) {
+            case "+" -> env.push(operand); // Retorna o mesmo valor
+            case "-" -> env.push(operand instanceof BigDecimal decimal ? decimal.negate()
+                            : operand instanceof BigInteger integer ? integer.negate()
+                            : NULL);
+            case "~" -> env.push(operand instanceof Boolean bool ? !bool : NULL);
+            default -> throw new RuntimeException("Operador unário desconhecido: " + ctx.getChild(0).getText());
+        }
+    }
+
+    @Override
+    public void exitPowerExp(FunParser.PowerExpContext ctx) {
+        var right = new BigDecimal(valueOf(env.pop()));
+        var left = new BigDecimal(valueOf(env.pop()));
+        env.push(Utils.pow(left, right));
+    }
+
+    @Override
+    public void exitParenthesisExp(FunParser.ParenthesisExpContext ctx) {
+        // Apenas empilha o resultado da expressão dentro do parêntese
+    }
+
+    @Override
+    public void exitItAtomExp(FunParser.ItAtomExpContext ctx) {
+        if (env.isMissing("it")) {
+            throw new RuntimeException("`it` não está definido no contexto atual.");
+        }
+        env.push(env.get("it"));
+    }
+
+    @Override
+    public void exitTestExp(FunParser.TestExpContext ctx) {
+        Object fallback = env.pop();
+        Object condition = env.pop();
+
+        Object result = null;
+        if (condition == NULL) {
+            result = NULL;
+        } else if (condition instanceof Boolean) {
+            result = (Boolean) condition ? true : fallback;
+        } else if (condition instanceof BigDecimal || condition instanceof BigInteger) {
+            result = BigDecimal.ZERO.compareTo(new BigDecimal(valueOf(condition))) == 0 ? fallback : condition;
+        } else if (condition instanceof Table) {
+            result = ((Table) condition).isEmpty() ? fallback : condition;
+        }
+        env.push(result);
+    }
+
+
 }
 

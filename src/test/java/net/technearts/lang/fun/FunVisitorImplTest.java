@@ -24,12 +24,8 @@ class FunVisitorImplTest {
         FunParser parser = new FunParser(tokens);
         ParseTree tree = parser.file();
         env = new ExecutionEnvironment();
-        // FunVisitorImpl visitor = new FunVisitorImpl(env);
-        // return visitor.visit(tree);
-        FunListenerImpl listener = new FunListenerImpl(env);
-        ParseTreeWalker walker = new ParseTreeWalker();
-        walker.walk(listener, tree);
-        return env.peek();
+        FunVisitorImpl visitor = new FunVisitorImpl(env);
+        return visitor.visit(tree);
     }
 
     @Test

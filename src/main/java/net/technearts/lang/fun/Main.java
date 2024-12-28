@@ -1,6 +1,6 @@
 package net.technearts.lang.fun;
 
-import io.quarkus.logging.Log;
+import jakarta.inject.Inject;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -19,6 +19,9 @@ import static java.lang.System.out;
         mixinStandardHelpOptions = true)
 public class Main implements Runnable {
 
+    @Inject
+    Config config;
+
     @Parameters(paramLabel = "<script>", description = "Script file to execute")
     private String script;
 
@@ -35,7 +38,7 @@ public class Main implements Runnable {
         info("Welcome to the Fun REPL!");
         info("Type your expressions below. Type 'exit' to quit.");
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        ExecutionEnvironment env = new ExecutionEnvironment();
+        ExecutionEnvironment env = new ExecutionEnvironment(config);
         FunVisitorImpl visitor = new FunVisitorImpl(env);
 
         while (true) {

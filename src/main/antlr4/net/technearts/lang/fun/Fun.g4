@@ -1,14 +1,16 @@
 grammar Fun;
 
-file                : assignExpression*
+file                : fileTableConcat?
                     ;
-assignExpression    : ID ASSIGN expression                          #assignExp
+fileTableConcat     : (assignExpression SEMICOLON)*
+                    ;
+
+assignExpression    : ID ASSIGN expression                              #assignExp
                     | ID ASSIGN LCURBR expression RCURBR                #operatorExp
                     | expression                                        #nonAssignExp
                     ;
 
 expression          : LPAREN expression RPAREN                          #parenthesisExp
-                    | (PLUS | MINUS | NOT) expression                   #unaryExp
                     | expression DEREF expression                       #derefExp
                     | <assoc=right>  expression EXP expression          #powerExp
                     | expression (ASTERISK|SLASH|PERCENT) expression    #mulDivModExp
@@ -17,20 +19,22 @@ expression          : LPAREN expression RPAREN                          #parenth
                     | expression (AND|AND_SHORT) expression             #andExp
                     | expression (OR|OR_SHORT) expression               #orExp
                     | expression XOR expression                         #xorExp
-                    | expression SEMICOLON (expression SEMICOLON)*      #tableConcatSemi
                     | expression (SEPARATOR expression)+                #tableConcatSep
                     | LBRACK (expression)* RBRACK                       #tableConstruct
                     | expression NULLTEST expression                    #nullTestExp
                     | expression TEST expression                        #testExp
+                    | ID                                                #idAtomExp
+                    | (PLUS | MINUS | NOT) expression                   #unaryExp
                     | ID expression                                     #callExp
                     | THIS expression                                   #thisExp
-                    | STRING                                            #stringLiteral
+                    | SIMPLESTRING                                      #stringLiteral
+                    | DOCSTRING                                         #docStringLiteral
                     | TRUE                                              #trueLiteral
                     | FALSE                                             #falseLiteral
                     | NULL                                              #nullLiteral
                     | INTEGER                                           #integerExp
                     | DECIMAL                                           #decimalExp
-                    | ID                                                #idAtomExp
+
                     | IT                                                #itAtomExp
                     ;
 
