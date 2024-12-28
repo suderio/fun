@@ -14,8 +14,29 @@ Some ideas and design goals:
 * Errors return null; in any operation with null, null is returned
 * Resources are, e.g., files, stdin, stdout, etc.
 * Every Operator (i.e., Function) must be able to return a value for any type, if the value is null, it is an Error
-* 
 
+## Examples
+
+x: 10;
+> 10
+
+y: 5 % 2;
+> 1
+
+succ: {it + 1};
+> {it + 1}
+
+succ y;
+> 2
+
+succ (x + y);
+> 12
+
+1, 2, 3;
+> [1 2 3]
+
+[a: 1, 2, b: 3]
+> [a: 1 0: 2 b: 3]
 ## Running the application in dev mode
 
 You can run your application in dev mode that enables live coding using:
