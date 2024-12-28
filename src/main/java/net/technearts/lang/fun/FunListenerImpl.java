@@ -1,5 +1,9 @@
 package net.technearts.lang.fun;
 
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import java.math.BigDecimal;
@@ -26,7 +30,7 @@ public class FunListenerImpl extends FunBaseListener {
     @Override
     public void exitOperatorExp(FunParser.OperatorExpContext ctx) {
         String operatorName = ctx.ID().getText();
-        Object body = env.pop(); // Corpo do operador
+        Object body = ctx.op; // Corpo do operador
         env.put(operatorName, body);
     }
 
@@ -71,8 +75,9 @@ public class FunListenerImpl extends FunBaseListener {
         if (env.isMissing(variableName)) {
             env.push(NULL);
             // TODO warn about null result
+        } else {
+            env.push(env.get(variableName));
         }
-        env.push(env.get(variableName));
     }
 
     @Override
@@ -172,11 +177,12 @@ public class FunListenerImpl extends FunBaseListener {
         if (env.isMissing(functionName)) {
             throw new RuntimeException("Função ou operador não definido: " + functionName);
         }
-
         // Avalia a função como um operador unário
+        // TODO Resolver o cce
         FunParser.ExpressionContext body = (FunParser.ExpressionContext) env.get(functionName);
         env.put("it", argument); // Define o "it" para o argumento da função
         new ParseTreeWalker().walk(this, body); // Avalia o corpo da função
+        env.remove("it");
     }
 
     @Override
@@ -221,8 +227,8 @@ public class FunListenerImpl extends FunBaseListener {
         switch (ctx.getChild(0).getText()) {
             case "+" -> env.push(operand); // Retorna o mesmo valor
             case "-" -> env.push(operand instanceof BigDecimal decimal ? decimal.negate()
-                            : operand instanceof BigInteger integer ? integer.negate()
-                            : NULL);
+                    : operand instanceof BigInteger integer ? integer.negate()
+                    : NULL);
             case "~" -> env.push(operand instanceof Boolean bool ? !bool : NULL);
             default -> throw new RuntimeException("Operador unário desconhecido: " + ctx.getChild(0).getText());
         }
@@ -243,9 +249,10 @@ public class FunListenerImpl extends FunBaseListener {
     @Override
     public void exitItAtomExp(FunParser.ItAtomExpContext ctx) {
         if (env.isMissing("it")) {
-            throw new RuntimeException("`it` não está definido no contexto atual.");
+            env.push(NULL);
+        } else {
+            env.push(env.get("it"));
         }
-        env.push(env.get("it"));
     }
 
     @Override

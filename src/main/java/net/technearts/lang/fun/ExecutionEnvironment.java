@@ -35,6 +35,10 @@ public class ExecutionEnvironment {
         variables.put(id, value);
     }
 
+    public void remove(String id) {
+        variables.remove(id);
+    }
+
     public boolean isMissing(String id) {
         return !variables.containsKey(id);
     }

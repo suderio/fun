@@ -6,7 +6,7 @@ fileTableConcat     : (assignExpression SEMICOLON)*
                     ;
 
 assignExpression    : ID ASSIGN expression                              #assignExp
-                    | ID ASSIGN LCURBR expression RCURBR                #operatorExp
+                    | ID ASSIGN LCURBR op=expression RCURBR             #operatorExp
                     | expression                                        #nonAssignExp
                     ;
 

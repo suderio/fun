@@ -9,10 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Map;
 
-import static java.math.BigDecimal.ZERO;
-import static java.math.BigInteger.ZERO;
 import static net.technearts.lang.fun.Nil.NULL;
 import static net.technearts.lang.fun.TestUtils.assertNumbersEqual;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -169,5 +166,21 @@ class FunListenerImplTest {
                 """;
         evaluate(code);
         assertNumbersEqual(70, env.get("x"));
+    }
+
+    @Test
+    void testCallOperators() {
+        String code = """
+            negate : { -it };
+            pos : { +it };
+            inv : { ~it };
+            x : negate 10;
+            y : pos 20;
+            z : inv true;
+        """;
+        evaluate(code);
+        assertNumbersEqual(-10, env.get("x"));
+        assertNumbersEqual(20, env.get("y"));
+        assertEquals(false, env.get("z"));
     }
 }
