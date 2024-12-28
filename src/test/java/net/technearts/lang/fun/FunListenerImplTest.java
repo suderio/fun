@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
+import static java.lang.System.out;
 import static net.technearts.lang.fun.Nil.NULL;
 import static net.technearts.lang.fun.TestUtils.assertNumbersEqual;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -182,5 +183,35 @@ class FunListenerImplTest {
         assertNumbersEqual(-10, env.get("x"));
         assertNumbersEqual(20, env.get("y"));
         assertEquals(false, env.get("z"));
+    }
+
+    @Test
+    void testOperators() {
+        String code = """
+            sq: { it * it };
+            x : sq 4;
+        """;
+        evaluate(code);
+        assertNumbersEqual(16, env.get("x"));
+    }
+
+    @Test
+    void testFibonacci() {
+        String code = """
+            fib : { [1 1].it ?? (this(it - 1) + this(it - 2)) };
+            x : fib 5;
+        """;
+        evaluate(code);
+        assertNumbersEqual(8, env.get("x"));
+    }
+
+    @Test
+    void testFatorial() {
+        String code = """
+            fat : { [1 1].it ?? (this(it - 1) * it) };
+            x : fat 0;
+        """;
+        evaluate(code);
+        assertNumbersEqual(1, env.get("x"));
     }
 }

@@ -1,14 +1,9 @@
 package net.technearts.lang.fun;
 
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.*;
 
 import static java.lang.String.valueOf;
 import static net.technearts.lang.fun.Nil.NULL;
@@ -30,7 +25,7 @@ public class FunListenerImpl extends FunBaseListener {
     @Override
     public void exitOperatorExp(FunParser.OperatorExpContext ctx) {
         String operatorName = ctx.ID().getText();
-        Object body = ctx.op; // Corpo do operador
+        Object body = ctx.op;
         env.put(operatorName, body);
     }
 
@@ -90,36 +85,32 @@ public class FunListenerImpl extends FunBaseListener {
             } else {
                 env.push((new BigDecimal(valueOf(left))).subtract((new BigDecimal(valueOf(right)))));
             }
-        } else {
+        } else if (right instanceof BigInteger && left instanceof BigInteger) {
             if (ctx.getChild(1).getText().equals("+")) {
                 env.push(((BigInteger) left).add(((BigInteger) right)));
             } else {
                 env.push(((BigInteger) left).subtract(((BigInteger) right)));
             }
+        } else {
+            env.push(NULL);
         }
     }
 
     @Override
     public void exitMulDivModExp(FunParser.MulDivModExpContext ctx) {
-        var right = new BigDecimal(valueOf(env.pop()));
-        var left = new BigDecimal(valueOf(env.pop()));
+        var right = new NumericWrapper(env.pop());
+        var left = new NumericWrapper(env.pop());
         switch (ctx.getChild(1).getText()) {
-            case "*":
-                env.push(left.multiply(right));
-                break;
-            case "/":
-                env.push(left.divide(right, env.getMathContext()));
-                break;
-            case "%":
-                env.push(left.remainder(right, env.getMathContext()));
-                break;
+            case "*" -> env.push(left.multiply(right));
+            case "/" -> env.push(left.divide(right));
+            case "%" -> env.push(left.remainder(right));
         }
     }
 
     @Override
     public void exitComparisonExp(FunParser.ComparisonExpContext ctx) {
-        var right = new BigDecimal(valueOf(env.pop()));
-        var left = new BigDecimal(valueOf(env.pop()));
+        var right = new NumericWrapper(env.pop());
+        var left = new NumericWrapper(env.pop());
         boolean result = switch (ctx.getChild(1).getText()) {
             case "=" -> left.compareTo(right) == 0;
             case "<>", "~=" -> left.compareTo(right) != 0;
@@ -175,22 +166,25 @@ public class FunListenerImpl extends FunBaseListener {
         Object argument = env.pop();
 
         if (env.isMissing(functionName)) {
-            throw new RuntimeException("Função ou operador não definido: " + functionName);
+            env.push(NULL);
+        } else {
+            // Avalia a função como um operador unário
+            FunParser.ExpressionContext body = (FunParser.ExpressionContext) env.get(functionName);
+            env.put("it", argument); // Define o "it" para o argumento da função
+            env.put("this", body); // Define o "this" para o argumento da função
+            new ParseTreeWalker().walk(this, body); // Avalia o corpo da função
+            env.remove("it");
+            env.remove("this");
         }
-        // Avalia a função como um operador unário
-        // TODO Resolver o cce
-        FunParser.ExpressionContext body = (FunParser.ExpressionContext) env.get(functionName);
-        env.put("it", argument); // Define o "it" para o argumento da função
-        new ParseTreeWalker().walk(this, body); // Avalia o corpo da função
-        env.remove("it");
     }
 
     @Override
     public void exitThisExp(FunParser.ThisExpContext ctx) {
         if (env.isMissing("this")) {
-            throw new RuntimeException("`this` não está definido no contexto atual.");
+            env.push(NULL);
+        } else {
+            env.push(env.get("this"));
         }
-        env.push(env.get("this"));
     }
 
     @Override
@@ -198,13 +192,13 @@ public class FunListenerImpl extends FunBaseListener {
         Object key = env.pop();
         Object base = env.pop();
 
-        if (base instanceof Map) {
-            env.push(((Map<?, ?>) base).get(key));
-        } else if (base instanceof List) {
-            env.push(((List<?>) base).get(((Number) key).intValue()));
-        } else {
-            throw new RuntimeException("Dereferência inválida em tipo: " + base.getClass());
+        if (base instanceof Table) {
+            if (((Table) base).containsKey(key)) {
+                env.push(((Table) base).get(key));
+                return;
+            }
         }
+        env.push(NULL);
     }
 
     @Override
@@ -236,9 +230,9 @@ public class FunListenerImpl extends FunBaseListener {
 
     @Override
     public void exitPowerExp(FunParser.PowerExpContext ctx) {
-        var right = new BigDecimal(valueOf(env.pop()));
-        var left = new BigDecimal(valueOf(env.pop()));
-        env.push(Utils.pow(left, right));
+        var right = new NumericWrapper(env.pop());
+        var left = new NumericWrapper(env.pop());
+        env.push(left.pow(right));
     }
 
     @Override
