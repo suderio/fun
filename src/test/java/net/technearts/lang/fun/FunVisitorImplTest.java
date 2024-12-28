@@ -1,14 +1,21 @@
 package net.technearts.lang.fun;
 
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.tree.*;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static net.technearts.lang.fun.TestUtils.assertNumbersEqual;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FunVisitorImplTest {
+
+    private ExecutionEnvironment env;
 
     private Object evaluate(String code) {
         CharStream input = CharStreams.fromString(code);
@@ -16,8 +23,13 @@ class FunVisitorImplTest {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         FunParser parser = new FunParser(tokens);
         ParseTree tree = parser.file();
-        FunVisitorImpl visitor = new FunVisitorImpl();
-        return visitor.visit(tree);
+        env = new ExecutionEnvironment();
+        // FunVisitorImpl visitor = new FunVisitorImpl(env);
+        // return visitor.visit(tree);
+        FunListenerImpl listener = new FunListenerImpl(env);
+        ParseTreeWalker walker = new ParseTreeWalker();
+        walker.walk(listener, tree);
+        return env.peek();
     }
 
     @Test
@@ -27,9 +39,8 @@ class FunVisitorImplTest {
             y : x + 8;
         """;
         evaluate(code);
-        FunVisitorImpl visitor = new FunVisitorImpl();
-        assertEquals(42, visitor.variables.get("x"));
-        assertEquals(50, visitor.variables.get("y"));
+        assertNumbersEqual(42, env.get("x"));
+        assertNumbersEqual(50, env.get("y"));
     }
 
     @Test
@@ -43,10 +54,9 @@ class FunVisitorImplTest {
             z : inv true;
         """;
         evaluate(code);
-        FunVisitorImpl visitor = new FunVisitorImpl();
-        assertEquals(-10, visitor.variables.get("x"));
-        assertEquals(20, visitor.variables.get("y"));
-        assertEquals(false, visitor.variables.get("z"));
+        assertEquals(-10, env.get("x"));
+        assertEquals(20, env.get("y"));
+        assertEquals(false, env.get("z"));
     }
 
     @Test
@@ -57,10 +67,9 @@ class FunVisitorImplTest {
             z : 10 ** 2;
         """;
         evaluate(code);
-        FunVisitorImpl visitor = new FunVisitorImpl();
-        assertEquals(14, visitor.variables.get("x"));
-        assertEquals(20, visitor.variables.get("y"));
-        assertEquals(100.0, visitor.variables.get("z"));
+        assertNumbersEqual(14, env.get("x"));
+        assertNumbersEqual(20, env.get("y"));
+        assertNumbersEqual(100.0, env.get("z"));
     }
 
     @Test
@@ -71,10 +80,9 @@ class FunVisitorImplTest {
             z : true ^ false;
         """;
         evaluate(code);
-        FunVisitorImpl visitor = new FunVisitorImpl();
-        assertEquals(false, visitor.variables.get("x"));
-        assertEquals(true, visitor.variables.get("y"));
-        assertEquals(true, visitor.variables.get("z"));
+        assertEquals(false, env.get("x"));
+        assertEquals(true, env.get("y"));
+        assertEquals(true, env.get("z"));
     }
 
     @Test
@@ -88,13 +96,12 @@ class FunVisitorImplTest {
             f : 10 <= 10;
         """;
         evaluate(code);
-        FunVisitorImpl visitor = new FunVisitorImpl();
-        assertEquals(true, visitor.variables.get("a"));
-        assertEquals(true, visitor.variables.get("b"));
-        assertEquals(true, visitor.variables.get("c"));
-        assertEquals(true, visitor.variables.get("d"));
-        assertEquals(true, visitor.variables.get("e"));
-        assertEquals(true, visitor.variables.get("f"));
+        assertEquals(true, env.get("a"));
+        assertEquals(true, env.get("b"));
+        assertEquals(true, env.get("c"));
+        assertEquals(true, env.get("d"));
+        assertEquals(true, env.get("e"));
+        assertEquals(true, env.get("f"));
     }
 
     @Test
@@ -104,9 +111,8 @@ class FunVisitorImplTest {
             y : 10 ?? 42;
         """;
         evaluate(code);
-        FunVisitorImpl visitor = new FunVisitorImpl();
-        assertEquals(42, visitor.variables.get("x"));
-        assertEquals(10, visitor.variables.get("y"));
+        assertEquals(42, env.get("x"));
+        assertEquals(10, env.get("y"));
     }
 
     @Test
@@ -116,9 +122,8 @@ class FunVisitorImplTest {
             y : 10 ? 42;
         """;
         evaluate(code);
-        FunVisitorImpl visitor = new FunVisitorImpl();
-        assertEquals(42, visitor.variables.get("x")); // null retorna o valor da direita
-        assertEquals(10, visitor.variables.get("y")); // valor não nulo retorna ele mesmo
+        assertNumbersEqual(42, (BigDecimal)env.get("x")); // null retorna o valor da direita
+        assertNumbersEqual(10, (BigDecimal)env.get("y")); // valor não nulo retorna ele mesmo
     }
 
     @Test
@@ -141,10 +146,10 @@ class FunVisitorImplTest {
         """;
         Object result = evaluate(code);
         Map<Object, Object> table = (Map<Object, Object>) result;
-        assertEquals(1, table.get(0));
-        assertEquals(2, table.get(1));
-        assertEquals(3, table.get(2));
-        assertEquals(4, table.get(3));
+        assertNumbersEqual(1, table.get(0));
+        assertNumbersEqual(2, table.get(1));
+        assertNumbersEqual(3, table.get(2));
+        assertNumbersEqual(4, table.get(3));
     }
 
     @Test
@@ -154,8 +159,7 @@ class FunVisitorImplTest {
             x : t.1;
         """;
         evaluate(code);
-        FunVisitorImpl visitor = new FunVisitorImpl();
-        assertEquals(2, visitor.variables.get("x"));
+        assertNumbersEqual(2, env.get("x"));
     }
 
     @Test
@@ -164,7 +168,6 @@ class FunVisitorImplTest {
             x : 10 + (20 * (5 - 2));
         """;
         evaluate(code);
-        FunVisitorImpl visitor = new FunVisitorImpl();
-        assertEquals(70, visitor.variables.get("x"));
+        assertNumbersEqual(70, env.get("x"));
     }
 }

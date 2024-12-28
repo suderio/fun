@@ -2,7 +2,7 @@ grammar Fun;
 
 file                : assignExpression*
                     ;
-assignExpression    : ID ASSIGN expression                              #assignExp
+assignExpression    : ID ASSIGN expression                          #assignExp
                     | ID ASSIGN LCURBR expression RCURBR                #operatorExp
                     | expression                                        #nonAssignExp
                     ;

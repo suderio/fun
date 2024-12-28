@@ -1,26 +1,30 @@
 package net.technearts.lang.fun;
 
+import io.quarkus.logging.Log;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Parameters;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 
+import static io.quarkus.logging.Log.info;
+import static java.lang.System.out;
+
 @Command(name = "fun-lang",
         description = "Interpreter for the Fun programming language",
         mixinStandardHelpOptions = true)
-public class GreetingCommand implements Runnable {
+public class Main implements Runnable {
 
-    @CommandLine.Option(names = {"-s", "--script"}, description = "Script file to execute")
+    @Parameters(paramLabel = "<script>", description = "Script file to execute")
     private String script;
 
     @Override
     public void run() {
-        if (script == null) {
+        if (script == null || script.isBlank()) {
             startRepl();
         } else {
             executeScript(script);
@@ -28,22 +32,23 @@ public class GreetingCommand implements Runnable {
     }
 
     private void startRepl() {
-        System.out.println("Welcome to the Fun REPL!");
-        System.out.println("Type your expressions below. Type 'exit' to quit.");
+        info("Welcome to the Fun REPL!");
+        info("Type your expressions below. Type 'exit' to quit.");
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        FunVisitorImpl visitor = new FunVisitorImpl();
+        ExecutionEnvironment env = new ExecutionEnvironment();
+        FunVisitorImpl visitor = new FunVisitorImpl(env);
 
         while (true) {
             try {
-                System.out.print("fun> ");
+                out.print("fun> ");
                 String line = reader.readLine();
                 if (line == null || line.equalsIgnoreCase("exit")) {
-                    System.out.println("Goodbye!");
+                    out.println("Goodbye!");
                     break;
                 }
 
                 Object result = evaluate(line, visitor);
-                System.out.println(result);
+                out.println(result);
             } catch (Exception e) {
                 System.err.println("Error: " + e.getMessage());
             }
@@ -58,13 +63,13 @@ public class GreetingCommand implements Runnable {
             while ((line = reader.readLine()) != null) {
                 code.append(line).append("\n");
             }
-
-            FunVisitorImpl visitor = new FunVisitorImpl();
+            ExecutionEnvironment env = new ExecutionEnvironment();
+            FunVisitorImpl visitor = new FunVisitorImpl(env);
             Object result = evaluate(code.toString(), visitor);
-            System.out.println("Script executed successfully. Result:");
-            System.out.println(result);
+            info("Script executed successfully. Result:");
+            out.println(result);
         } catch (Exception e) {
-            System.err.println("Error reading or executing script: " + e.getMessage());
+            info("Error reading or executing script: " + e.getMessage());
         }
     }
 

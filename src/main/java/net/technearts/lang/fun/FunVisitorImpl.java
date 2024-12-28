@@ -3,7 +3,11 @@ package net.technearts.lang.fun;
 import java.util.*;
 
 public class FunVisitorImpl extends FunBaseVisitor<Object> {
-    final Map<String, Object> variables = new HashMap<>();
+    private final ExecutionEnvironment env;
+
+    public FunVisitorImpl(ExecutionEnvironment env) {
+        this.env = env;
+    }
 
     @Override
     public Object visitThisExp(FunParser.ThisExpContext ctx) {
@@ -36,7 +40,12 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     public Object visitAssignExp(FunParser.AssignExpContext ctx) {
         String variableName = ctx.ID().getText();
         Object value = visit(ctx.expression());
-        variables.put(variableName, value);
+        if (value instanceof ArrayList<?>) {
+            if (((ArrayList<?>) value).size() == 1) {
+                env.put(variableName, ((ArrayList<?>) value).get(0));
+            }
+        }
+
         return value;
     }
 
@@ -44,7 +53,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     public Object visitOperatorExp(FunParser.OperatorExpContext ctx) {
         String operatorName = ctx.ID().getText();
         Object body = visit(ctx.expression());
-        variables.put(operatorName, body); // Trata o operador como uma variável
+        env.put(operatorName, body); // Trata o operador como uma variável
         return body;
     }
 
@@ -201,18 +210,18 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     @Override
     public Object visitIdAtomExp(FunParser.IdAtomExpContext ctx) {
         String variableName = ctx.ID().getText();
-        if (!variables.containsKey(variableName)) {
+        if (!env.contains(variableName)) {
             throw new RuntimeException("Variável não definida: " + variableName);
         }
-        return variables.get(variableName);
+        return env.get(variableName);
     }
 
     @Override
     public Object visitItAtomExp(FunParser.ItAtomExpContext ctx) {
-        if (!variables.containsKey("it")) {
+        if (!env.contains("it")) {
             throw new RuntimeException("`it` não está definido.");
         }
-        return variables.get("it");
+        return env.get("it");
     }
 
     @Override
