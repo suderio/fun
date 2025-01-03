@@ -3,14 +3,14 @@ package net.technearts.lang.fun;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.ConsoleErrorListener;
+import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import static java.lang.System.out;
 import static net.technearts.lang.fun.Nil.NULL;
 import static net.technearts.lang.fun.TestUtils.assertNumbersEqual;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,14 +23,16 @@ class FunListenerImplTest {
     private Object evaluate(String code) {
         CharStream input = CharStreams.fromString(code);
         FunLexer lexer = new FunLexer(input);
+        lexer.addErrorListener(ConsoleErrorListener.INSTANCE);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         FunParser parser = new FunParser(tokens);
+        parser.addErrorListener(ConsoleErrorListener.INSTANCE);
+        parser.getInterpreter().setPredictionMode(PredictionMode.LL_EXACT_AMBIG_DETECTION);
         ParseTree tree = parser.file();
         env = new ExecutionEnvironment();
-        FunListenerImpl listener = new FunListenerImpl(env);
-        ParseTreeWalker walker = new ParseTreeWalker();
-        walker.walk(listener, tree);
-        return env.peek();
+        FunVisitorImpl visitor = new FunVisitorImpl(env);
+        System.out.println(tree.toStringTree(parser));
+        return visitor.visit(tree);
     }
 
     @Test
@@ -172,13 +174,13 @@ class FunListenerImplTest {
     @Test
     void testCallOperators() {
         String code = """
-            negate : { -it };
-            pos : { +it };
-            inv : { ~it };
-            x : negate 10;
-            y : pos 20;
-            z : inv true;
-        """;
+                    negate : { -it };
+                    pos : { +it };
+                    inv : { ~it };
+                    x : negate 10;
+                    y : pos 20;
+                    z : inv true;
+                """;
         evaluate(code);
         assertNumbersEqual(-10, env.get("x"));
         assertNumbersEqual(20, env.get("y"));
@@ -188,9 +190,9 @@ class FunListenerImplTest {
     @Test
     void testOperators() {
         String code = """
-            sq: { it * it };
-            x : sq 4;
-        """;
+                    sq: { it * it };
+                    x : sq 4;
+                """;
         evaluate(code);
         assertNumbersEqual(16, env.get("x"));
     }
@@ -198,9 +200,9 @@ class FunListenerImplTest {
     @Test
     void testFibonacci() {
         String code = """
-            fib : { [1 1].it ?? (this(it - 1) + this(it - 2)) };
-            x : fib 5;
-        """;
+                    fib : { [1 1].it ?? (this(it - 1) + this(it - 2)) };
+                    x : fib 5;
+                """;
         evaluate(code);
         assertNumbersEqual(8, env.get("x"));
     }
@@ -208,9 +210,9 @@ class FunListenerImplTest {
     @Test
     void testFatorial() {
         String code = """
-            fat : { [1 1].it ?? (this(it - 1) * it) };
-            x : fat 0;
-        """;
+                    fat : { [1 1].it ?? (this(it - 1) * it) };
+                    x : fat 0;
+                """;
         evaluate(code);
         assertNumbersEqual(1, env.get("x"));
     }

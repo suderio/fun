@@ -1,51 +1,45 @@
 grammar Fun;
 
-file                : fileTableConcat?
-                    ;
-fileTableConcat     : (assignExpression SEMICOLON)*
+file                : (assign SEMICOLON)*                                           #fileTable
                     ;
 
-assignExpression    : ID ASSIGN expression                              #assignExp
-                    | ID ASSIGN LCURBR op=expression RCURBR             #operatorExp
-                    | expression                                        #nonAssignExp
+assign              : ID ASSIGN expression                                          #assignExp
+                    | ID ASSIGN LCURBR op=expression RCURBR                         #operatorExp
+                    | expression                                                    #expressionExp
                     ;
 
-expression          : LPAREN expression RPAREN                          #parenthesisExp
-                    | expression DEREF expression                       #derefExp
-                    | <assoc=right>  expression EXP expression          #powerExp
-                    | expression (ASTERISK|SLASH|PERCENT) expression    #mulDivModExp
-                    | expression (PLUS|MINUS) expression                #addSubExp
-                    | expression comparisonOperator expression          #comparisonExp
-                    | expression (AND|AND_SHORT) expression             #andExp
-                    | expression (OR|OR_SHORT) expression               #orExp
-                    | expression XOR expression                         #xorExp
-                    | expression (SEPARATOR expression)+                #tableConcatSep
-                    | LBRACK (expression)* RBRACK                       #tableConstruct
-                    | expression NULLTEST expression                    #nullTestExp
-                    | expression TEST expression                        #testExp
-                    | ID                                                #idAtomExp
-                    | (PLUS | MINUS | NOT) expression                   #unaryExp
-                    | ID expression                                     #callExp
-                    | THIS expression                                   #thisExp
-                    | SIMPLESTRING                                      #stringLiteral
-                    | DOCSTRING                                         #docStringLiteral
-                    | TRUE                                              #trueLiteral
-                    | FALSE                                             #falseLiteral
-                    | NULL                                              #nullLiteral
-                    | INTEGER                                           #integerExp
-                    | DECIMAL                                           #decimalExp
-
-                    | IT                                                #itAtomExp
+expression          : LPAREN expression RPAREN                                      #parenthesisExp
+                    | expression DEREF expression                                   #derefExp
+                    | <assoc=right> (PLUS|MINUS|NOT|INC|DEC) expression             #unaryExp
+                    | <assoc=right> expression EXP expression                       #powerExp
+                    | expression (ASTERISK|SLASH|PERCENT) expression                #mulDivModExp
+                    | expression (PLUS|MINUS) expression                            #addSubExp
+                    | expression DOLAR expression                                   #substExp
+                    | expression (RSHIFT|LSHIFT) expression                         #shiftExp
+                    | expression (LT|LE|GE|GT) expression                           #comparisonExp
+                    | expression (EQ|NE) expression                                 #equalityExp
+                    | expression (AND|AND_SHORT) expression                         #andExp
+                    | expression XOR expression                                     #xorExp
+                    | expression (OR|OR_SHORT) expression                           #orExp
+                    | <assoc=right> expression NULLTEST expression                  #nullTestExp
+                    | <assoc=right> expression TEST expression                      #testExp
+                    | expression (SUM|SUB|MULT|DIV|MOD) expression                  #assignOpExp
+                    | expression (SEPARATOR expression)+                            #tableConcatSepExp
+                    | LBRACK (expression)* RBRACK                                   #tableConstructExp
+                    | expression RANGE expression                                   #rangeExp
+                    | ID                                                            #idAtomExp
+                    | ID expression                                                 #callExp
+                    | THIS expression                                               #thisExp
+                    | SIMPLESTRING                                                  #stringLiteral
+                    | DOCSTRING                                                     #docStringLiteral
+                    | TRUE                                                          #trueLiteral
+                    | FALSE                                                         #falseLiteral
+                    | NULL                                                          #nullLiteral
+                    | INTEGER                                                       #integerLiteral
+                    | DECIMAL                                                       #decimalLiteral
+                    | IT                                                            #itAtomLiteral
                     ;
 
-comparisonOperator
-    : EQ    # Equals
-    | NE    # NotEquals
-    | LT    # LessThan
-    | LE    # LessThanOrEqual
-    | GT    # GreaterThan
-    | GE    # GreaterThanOrEqual
-    ;
 // Whitespace
 NEWLINE            : '\r\n' | '\r' | '\n' ;
 WS                 : [\r\n\t ]+ -> channel(HIDDEN) ;
@@ -62,10 +56,8 @@ NULL                : 'null' ;
 // Literals
 INTEGER            : [0-9]+;
 DECIMAL            : '0'|[1-9][0-9]* '.' [0-9]+ ;
-NUMBER             : INTEGER | DECIMAL;
 SIMPLESTRING       : '"' (~["\\] | '\\' .)* '"';
 DOCSTRING          : '"""' .*? '"""';
-STRING             : SIMPLESTRING | DOCSTRING;
 
 // Operators
 
@@ -106,12 +98,13 @@ NE                 : '<>' | '~=';
 // OTHER
 LSHIFT             : '<<';
 RSHIFT             : '>>';
-ACC                : '+=';
-DECC               : '-=';
+SUM                : '+=';
+SUB                : '-=';
 MULT               : '*=';
 DIV                : '/=';
 MOD                : '%=';
-ELIPSIS            :'...';
+INC                : '++';
+DEC                : '--';
 RANGE              : '..';
 DEREF              : '.' ;
 REDIRECT           : '@' ;

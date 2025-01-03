@@ -6,12 +6,17 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.lang.System.out;
 import static java.math.RoundingMode.HALF_UP;
+import static net.technearts.lang.fun.Nil.NULL;
 
 public class ExecutionEnvironment {
     private final Map<String, Object> variables = new HashMap<>();
     private final Deque<Object> stack = new ArrayDeque<>();
     private final MathContext mathContext;
+    private boolean stackOn = true;
+
+    private boolean debug = true;
 
     public ExecutionEnvironment() {
         mathContext = new MathContext(50, HALF_UP);
@@ -19,8 +24,12 @@ public class ExecutionEnvironment {
 
     public ExecutionEnvironment(Config config) {
         mathContext = new MathContext(config.precision(), HALF_UP);
+        debug = config.debug();
     }
 
+    public boolean isDebug() {
+        return debug;
+    }
 
     public MathContext getMathContext() {
         return mathContext;
@@ -31,11 +40,11 @@ public class ExecutionEnvironment {
     }
 
     public void put(String id, Object value) {
-        variables.put(id, value);
+        if (stackOn) variables.put(id, value);
     }
 
     public void remove(String id) {
-        variables.remove(id);
+        if (stackOn) variables.remove(id);
     }
 
     public boolean isMissing(String id) {
@@ -43,7 +52,9 @@ public class ExecutionEnvironment {
     }
 
     public Object pop() {
-        return stack.pop();
+        if (debug) out.printf("-- pop %s\n", stack.peek());
+        if (stackOn) return stack.pop();
+        return NULL;
     }
 
     public Object peek() {
@@ -51,7 +62,8 @@ public class ExecutionEnvironment {
     }
 
     public void push(Object o) {
-        stack.push(o);
+        if (debug) out.printf("-- push %s\n", o);
+        if (stackOn) stack.push(o);
     }
 
     public boolean isEmpty() {
@@ -59,6 +71,16 @@ public class ExecutionEnvironment {
     }
 
     public Object last() {
-        return stack.pollLast();
+        if (debug) out.printf("-- poolLast %s\n", stack.peekLast());
+        if (stackOn) return stack.pollLast();
+        return NULL;
+    }
+
+    public void turnOn() {
+        stackOn = true;
+    }
+
+    public void turnOff() {
+        stackOn = false;
     }
 }

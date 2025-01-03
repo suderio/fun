@@ -1,2 +1,4 @@
-math:
-  precision: 50
+fun:
+  debug: true
+  math:
+    precision: 50

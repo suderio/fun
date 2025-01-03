@@ -1,11 +1,14 @@
 package net.technearts.lang.fun;
 
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import static java.lang.String.valueOf;
+import static java.lang.System.err;
+import static java.lang.System.out;
 import static net.technearts.lang.fun.Nil.NULL;
 
 public class FunListenerImpl extends FunBaseListener {
@@ -23,24 +26,30 @@ public class FunListenerImpl extends FunBaseListener {
     }
 
     @Override
+    public void enterOperatorExp(FunParser.OperatorExpContext ctx) {
+        env.turnOff();
+    }
+
+    @Override
     public void exitOperatorExp(FunParser.OperatorExpContext ctx) {
+        env.turnOn();
         String operatorName = ctx.ID().getText();
         Object body = ctx.op;
         env.put(operatorName, body);
     }
 
-    @Override
-    public void exitNonAssignExp(FunParser.NonAssignExpContext ctx) {
-        // Apenas preserva o valor da expressão avaliada na pilha
-    }
+//    @Override
+//    public void exitNonAssignExp(FunParser.NonAssignExpContext ctx) {
+//        // Apenas preserva o valor da expressão avaliada na pilha
+//    }
 
     @Override
-    public void exitIntegerExp(FunParser.IntegerExpContext ctx) {
+    public void exitIntegerLiteral(FunParser.IntegerLiteralContext ctx) {
         env.push(new BigInteger(ctx.INTEGER().getText()));
     }
 
     @Override
-    public void exitDecimalExp(FunParser.DecimalExpContext ctx) {
+    public void exitDecimalLiteral(FunParser.DecimalLiteralContext ctx) {
         env.push(new BigDecimal(ctx.DECIMAL().getText()));
     }
 
@@ -69,7 +78,7 @@ public class FunListenerImpl extends FunBaseListener {
         String variableName = ctx.ID().getText();
         if (env.isMissing(variableName)) {
             env.push(NULL);
-            // TODO warn about null result
+            err.printf("Warning: %s is missing from environment. Null was pushed into the stack.\n", ctx.ID().getText());
         } else {
             env.push(env.get(variableName));
         }
@@ -92,6 +101,7 @@ public class FunListenerImpl extends FunBaseListener {
                 env.push(((BigInteger) left).subtract(((BigInteger) right)));
             }
         } else {
+            err.printf("Warning: %s or %s is not supported. Null was pushed into the stack.\n", left, right);
             env.push(NULL);
         }
     }
@@ -112,8 +122,6 @@ public class FunListenerImpl extends FunBaseListener {
         var right = new NumericWrapper(env.pop());
         var left = new NumericWrapper(env.pop());
         boolean result = switch (ctx.getChild(1).getText()) {
-            case "=" -> left.compareTo(right) == 0;
-            case "<>", "~=" -> left.compareTo(right) != 0;
             case "<" -> left.compareTo(right) < 0;
             case "<=" -> left.compareTo(right) <= 0;
             case ">" -> left.compareTo(right) > 0;
@@ -124,14 +132,32 @@ public class FunListenerImpl extends FunBaseListener {
     }
 
     @Override
+    public void exitEqualityExp(FunParser.EqualityExpContext ctx) {
+        var right = new NumericWrapper(env.pop());
+        var left = new NumericWrapper(env.pop());
+        boolean result = switch (ctx.getChild(1).getText()) {
+            case "=" -> left.compareTo(right) == 0;
+            case "<>", "~=" -> left.compareTo(right) != 0;
+            default -> throw new RuntimeException("Operador de igualdade desconhecido.");
+        };
+        env.push(result);
+    }
+
+    @Override
+    public void enterNullTestExp(FunParser.NullTestExpContext ctx) {
+        out.println("Entering Null Test");
+    }
+
+    @Override
     public void exitNullTestExp(FunParser.NullTestExpContext ctx) {
         Object right = env.pop();
         Object left = env.pop();
         env.push(left != NULL ? left : right);
+        out.println("Exiting Null Test");
     }
 
     @Override
-    public void exitTableConstruct(FunParser.TableConstructContext ctx) {
+    public void exitTableConstructExp(FunParser.TableConstructExpContext ctx) {
         Table table = new Table();
         while (!env.isEmpty()) {
             table.put(env.last());
@@ -167,20 +193,22 @@ public class FunListenerImpl extends FunBaseListener {
 
         if (env.isMissing(functionName)) {
             env.push(NULL);
-        } else {
+        } else if (env.get(functionName) instanceof FunParser.ExpressionContext body) {
             // Avalia a função como um operador unário
-            FunParser.ExpressionContext body = (FunParser.ExpressionContext) env.get(functionName);
             env.put("it", argument); // Define o "it" para o argumento da função
             env.put("this", body); // Define o "this" para o argumento da função
             new ParseTreeWalker().walk(this, body); // Avalia o corpo da função
             env.remove("it");
             env.remove("this");
+        } else { // This is in fact a variable
+            env.push(env.get(functionName));
         }
     }
 
     @Override
     public void exitThisExp(FunParser.ThisExpContext ctx) {
         if (env.isMissing("this")) {
+            err.printf("Warning: 'this' is missing from environment of %s. Null was pushed into the stack.\n", ctx.getText());
             env.push(NULL);
         } else {
             env.push(env.get("this"));
@@ -198,11 +226,12 @@ public class FunListenerImpl extends FunBaseListener {
                 return;
             }
         }
+        err.printf("Warning: Dereference of %s is missing from Table. Null was pushed into the stack.\n", key);
         env.push(NULL);
     }
 
     @Override
-    public void exitTableConcatSep(FunParser.TableConcatSepContext ctx) {
+    public void exitTableConcatSepExp(FunParser.TableConcatSepExpContext ctx) {
         var left = env.pop();
         Table table;
         if (left instanceof Table) {
@@ -220,9 +249,8 @@ public class FunListenerImpl extends FunBaseListener {
         Object operand = env.pop();
         switch (ctx.getChild(0).getText()) {
             case "+" -> env.push(operand); // Retorna o mesmo valor
-            case "-" -> env.push(operand instanceof BigDecimal decimal ? decimal.negate()
-                    : operand instanceof BigInteger integer ? integer.negate()
-                    : NULL);
+            case "-" ->
+                    env.push(operand instanceof BigDecimal decimal ? decimal.negate() : operand instanceof BigInteger integer ? integer.negate() : NULL);
             case "~" -> env.push(operand instanceof Boolean bool ? !bool : NULL);
             default -> throw new RuntimeException("Operador unário desconhecido: " + ctx.getChild(0).getText());
         }
@@ -241,8 +269,9 @@ public class FunListenerImpl extends FunBaseListener {
     }
 
     @Override
-    public void exitItAtomExp(FunParser.ItAtomExpContext ctx) {
+    public void exitItAtomLiteral(FunParser.ItAtomLiteralContext ctx) {
         if (env.isMissing("it")) {
+            err.printf("Warning: 'it' is missing from %s. Null was pushed into the stack.\n", ctx.getText());
             env.push(NULL);
         } else {
             env.push(env.get("it"));
@@ -256,6 +285,7 @@ public class FunListenerImpl extends FunBaseListener {
 
         Object result = null;
         if (condition == NULL) {
+            err.printf("Warning: a test was made with null condition and %s fallback. You should use the Null Test (??) operator.\n", fallback);
             result = NULL;
         } else if (condition instanceof Boolean) {
             result = (Boolean) condition ? true : fallback;
@@ -267,6 +297,16 @@ public class FunListenerImpl extends FunBaseListener {
         env.push(result);
     }
 
+    @Override
+    public void enterEveryRule(ParserRuleContext ctx) {
+        super.enterEveryRule(ctx);
+        if (env.isDebug()) out.printf("Entering %s\n", ctx.getText());
+    }
 
+    @Override
+    public void exitEveryRule(ParserRuleContext ctx) {
+        super.exitEveryRule(ctx);
+        if (env.isDebug()) out.printf("Exiting %s\n", ctx.getText());
+    }
 }
 
