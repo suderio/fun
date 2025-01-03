@@ -6,6 +6,8 @@ import java.math.BigInteger;
 
 import static java.lang.String.valueOf;
 import static java.lang.System.err;
+import static java.lang.System.out;
+import static net.technearts.lang.fun.ElementWrapper.wrap;
 import static net.technearts.lang.fun.Nil.NULL;
 
 public class FunVisitorImpl extends FunBaseVisitor<Object> {
@@ -16,47 +18,58 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitFileTable(FunParser.FileTableContext ctx) {
-        // Inicializa uma nova tabela
-        Table table = new Table();
-
-        // Percorre todas as expressões na regra e avalia cada uma
-        for (var expression : ctx.assign()) {
-            Object value = visit(expression); // Avalia a expressão atual
-            table.put(value); // Adiciona o resultado na tabela
-        }
-
-        return table; // Retorna a tabela resultante
-    }
-
-    @Override
-    public Object visitExpressionExp(FunParser.ExpressionExpContext ctx) {
-        return visit(ctx.expression());
-    }
-
-    @Override
     public Object visitShiftExp(FunParser.ShiftExpContext ctx) {
+        // TODO
         return super.visitShiftExp(ctx);
     }
 
     @Override
     public Object visitSubstExp(FunParser.SubstExpContext ctx) {
+        // TODO
         return super.visitSubstExp(ctx);
     }
 
     @Override
     public Object visitAssignOpExp(FunParser.AssignOpExpContext ctx) {
+        // TODO
         return super.visitAssignOpExp(ctx);
     }
 
     @Override
     public Object visitRangeExp(FunParser.RangeExpContext ctx) {
+        // TODO
         return super.visitRangeExp(ctx);
     }
 
     @Override
     public Object visitDocStringLiteral(FunParser.DocStringLiteralContext ctx) {
+        // TODO
         return super.visitDocStringLiteral(ctx);
+    }
+
+    @Override
+    public Object visitItAtomLiteral(FunParser.ItAtomLiteralContext ctx) {
+        if (env.isMissing("it")) {
+            err.printf("Warning: 'it' is missing from %s. Null was pushed into the stack.\n", ctx.getText());
+            return NULL;
+        } else {
+            return env.get("it");
+        }
+    }
+
+    @Override
+    public Object visitFileTable(FunParser.FileTableContext ctx) {
+        Table table = new Table();
+        for (var expression : ctx.assign()) {
+            Object value = visit(expression);
+            table.put(value);
+        }
+        return table;
+    }
+
+    @Override
+    public Object visitExpressionExp(FunParser.ExpressionExpContext ctx) {
+        return visit(ctx.expression());
     }
 
     @Override
@@ -70,24 +83,21 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         } else {
             table.put(right);
         }
-        return table; // Retorna a tabela resultante
-    }
-
-    @Override
-    public Object visitItAtomLiteral(FunParser.ItAtomLiteralContext ctx) {
-        return super.visitItAtomLiteral(ctx);
+        return table;
     }
 
     @Override
     public Object visitPowerExp(FunParser.PowerExpContext ctx) {
-        return super.visitPowerExp(ctx);
+        var left = wrap(visit(ctx.expression(0)));
+        var right = wrap(visit(ctx.expression(1)));
+        return left.pow(right);
     }
 
     @Override
     public Object visitUnaryExp(FunParser.UnaryExpContext ctx) {
         Object operand = visit(ctx.expression());
         return switch (ctx.getChild(0).getText()) {
-            case "+" -> operand; // Retorna o mesmo valor
+            case "+" -> operand;
             case "-" ->
                     operand instanceof BigDecimal decimal ? decimal.negate() : operand instanceof BigInteger integer ? integer.negate() : NULL;
             case "~" -> operand instanceof Boolean bool ? !bool : NULL;
@@ -97,7 +107,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitParenthesisExp(FunParser.ParenthesisExpContext ctx) {
-        return super.visitParenthesisExp(ctx);
+        return visit(ctx.expression());
     }
 
     @Override
@@ -111,10 +121,10 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     @Override
     public Object visitOperatorExp(FunParser.OperatorExpContext ctx) {
         env.turnOff();
-        Object body = visit(ctx.expression());
+        var body = ctx.op;
         env.turnOn();
         env.put(ctx.ID().getText(), body);
-        return null;
+        return body;
     }
 
     @Override
@@ -175,8 +185,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitMulDivModExp(FunParser.MulDivModExpContext ctx) {
-        NumericWrapper left = new NumericWrapper(visit(ctx.expression(0)));
-        NumericWrapper right = new NumericWrapper(visit(ctx.expression(1)));
+        var left = new ElementWrapper<>(visit(ctx.expression(0)));
+        var right = new ElementWrapper<>(visit(ctx.expression(1)));
         return switch (ctx.getChild(1).getText()) {
             case "*" -> left.multiply(right);
             case "/" -> left.divide(right);
@@ -187,8 +197,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitComparisonExp(FunParser.ComparisonExpContext ctx) {
-        NumericWrapper left = new NumericWrapper(visit(ctx.expression(0)));
-        NumericWrapper right = new NumericWrapper(visit(ctx.expression(1)));
+        var left = new ElementWrapper<>(visit(ctx.expression(0)));
+        var right = new ElementWrapper<>(visit(ctx.expression(1)));
         return switch (ctx.getChild(1).getText()) {
             case "<" -> left.compareTo(right) < 0;
             case "<=" -> left.compareTo(right) <= 0;
@@ -226,9 +236,15 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitAndExp(FunParser.AndExpContext ctx) {
+    public Object visitAndShortExp(FunParser.AndShortExpContext ctx) {
         boolean left = (boolean) visit(ctx.expression(0));
         if (!left) return false; // Short-circuit
+        return visit(ctx.expression(1));
+    }
+
+    @Override
+    public Object visitAndExp(FunParser.AndExpContext ctx) {
+        boolean left = (boolean) visit(ctx.expression(0));
         boolean right = (boolean) visit(ctx.expression(1));
         return left && right;
     }
@@ -241,9 +257,15 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitOrExp(FunParser.OrExpContext ctx) {
+    public Object visitOrShortExp(FunParser.OrShortExpContext ctx) {
         boolean left = (boolean) visit(ctx.expression(0));
         if (left) return true; // Short-circuit
+        return visit(ctx.expression(1));
+    }
+
+    @Override
+    public Object visitOrExp(FunParser.OrExpContext ctx) {
+        boolean left = (boolean) visit(ctx.expression(0));
         boolean right = (boolean) visit(ctx.expression(1));
         return left || right;
     }
@@ -253,6 +275,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         String functionName = ctx.ID().getText();
         Object argument = visit(ctx.expression());
         if (env.isMissing(functionName)) {
+            err.printf("Warning: %s is missing in environment. Null was returned.", functionName);
             return NULL;
         } else if (env.get(functionName) instanceof FunParser.ExpressionContext body) {
             env.put("it", argument);
@@ -271,8 +294,17 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         if (env.isMissing("this")) {
             err.println("Warning: 'this' is missing in environment. Null was returned.");
             return NULL;
+        } else if (env.get("this") instanceof FunParser.ExpressionContext body) {
+            var argument = visit(ctx.expression());
+            err.printf("Calling this(%s)\n", argument);
+            env.put("it", argument);
+            Object result = visit(body);
+            env.remove("it");
+            return result;
+        } else {
+            err.println("Warning: 'this' is missing in environment. Null was returned.");
+            return NULL;
         }
-        return env.get("this");
     }
 
     @Override

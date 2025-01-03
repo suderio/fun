@@ -18,9 +18,11 @@ expression          : LPAREN expression RPAREN                                  
                     | expression (RSHIFT|LSHIFT) expression                         #shiftExp
                     | expression (LT|LE|GE|GT) expression                           #comparisonExp
                     | expression (EQ|NE) expression                                 #equalityExp
-                    | expression (AND|AND_SHORT) expression                         #andExp
+                    | expression (AND_SHORT) expression                             #andShortExp
+                    | expression (AND) expression                                   #andExp
                     | expression XOR expression                                     #xorExp
-                    | expression (OR|OR_SHORT) expression                           #orExp
+                    | expression (OR_SHORT) expression                              #orShortExp
+                    | expression (OR) expression                                    #orExp
                     | <assoc=right> expression NULLTEST expression                  #nullTestExp
                     | <assoc=right> expression TEST expression                      #testExp
                     | expression (SUM|SUB|MULT|DIV|MOD) expression                  #assignOpExp

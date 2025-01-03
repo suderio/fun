@@ -108,8 +108,8 @@ public class FunListenerImpl extends FunBaseListener {
 
     @Override
     public void exitMulDivModExp(FunParser.MulDivModExpContext ctx) {
-        var right = new NumericWrapper(env.pop());
-        var left = new NumericWrapper(env.pop());
+        var right = new ElementWrapper(env.pop());
+        var left = new ElementWrapper(env.pop());
         switch (ctx.getChild(1).getText()) {
             case "*" -> env.push(left.multiply(right));
             case "/" -> env.push(left.divide(right));
@@ -119,8 +119,8 @@ public class FunListenerImpl extends FunBaseListener {
 
     @Override
     public void exitComparisonExp(FunParser.ComparisonExpContext ctx) {
-        var right = new NumericWrapper(env.pop());
-        var left = new NumericWrapper(env.pop());
+        var right = new ElementWrapper(env.pop());
+        var left = new ElementWrapper(env.pop());
         boolean result = switch (ctx.getChild(1).getText()) {
             case "<" -> left.compareTo(right) < 0;
             case "<=" -> left.compareTo(right) <= 0;
@@ -133,8 +133,8 @@ public class FunListenerImpl extends FunBaseListener {
 
     @Override
     public void exitEqualityExp(FunParser.EqualityExpContext ctx) {
-        var right = new NumericWrapper(env.pop());
-        var left = new NumericWrapper(env.pop());
+        var right = new ElementWrapper(env.pop());
+        var left = new ElementWrapper(env.pop());
         boolean result = switch (ctx.getChild(1).getText()) {
             case "=" -> left.compareTo(right) == 0;
             case "<>", "~=" -> left.compareTo(right) != 0;
@@ -258,8 +258,8 @@ public class FunListenerImpl extends FunBaseListener {
 
     @Override
     public void exitPowerExp(FunParser.PowerExpContext ctx) {
-        var right = new NumericWrapper(env.pop());
-        var left = new NumericWrapper(env.pop());
+        var right = new ElementWrapper(env.pop());
+        var left = new ElementWrapper(env.pop());
         env.push(left.pow(right));
     }
 

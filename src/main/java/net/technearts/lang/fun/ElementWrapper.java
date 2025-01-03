@@ -1,5 +1,7 @@
 package net.technearts.lang.fun;
 
+import jakarta.annotation.Nonnull;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -10,12 +12,16 @@ import static java.math.BigDecimal.ZERO;
 import static java.math.RoundingMode.HALF_UP;
 import static net.technearts.lang.fun.Nil.NULL;
 
-public class NumericWrapper implements Comparable<NumericWrapper>{
-    private final Object value;
+public class ElementWrapper<T> implements Comparable<T>{
+    private final T value;
     private final MathContext mathContext = new MathContext(50, HALF_UP);
 
-    public NumericWrapper(Object value) {
+    public ElementWrapper(T value) {
         this.value = value;
+    }
+
+    public static <V> ElementWrapper<V>  wrap(V value) {
+        return new ElementWrapper<>(value);
     }
 
     public BigDecimal getDecimal() {
@@ -25,7 +31,7 @@ public class NumericWrapper implements Comparable<NumericWrapper>{
             case Table v -> new BigDecimal(v.size());
             case String v -> new BigDecimal(v.length());
             case Boolean v -> v ? ONE : ZERO;
-            default -> null;
+            case null, default -> null;
         };
     }
 
@@ -36,41 +42,41 @@ public class NumericWrapper implements Comparable<NumericWrapper>{
             case Table v -> new BigInteger(valueOf(v.size()));
             case String v -> new BigInteger(valueOf(v.length()));
             case Boolean v -> v ? BigInteger.ONE : BigInteger.ZERO;
-            default -> null;
+            case null, default -> null;
         };
     }
 
-    public Object multiply(NumericWrapper ne) {
+    public Object multiply(ElementWrapper<?> ne) {
         if (this.getDecimal() == null || ne.getDecimal() == null) {
             return NULL;
         }
         return this.getDecimal().multiply(ne.getDecimal(), mathContext);
     }
 
-    public Object divide(NumericWrapper ne) {
+    public Object divide(ElementWrapper<?> ne) {
         if (this.getDecimal() == null || ne.getDecimal() == null) {
             return NULL;
         }
         return this.getDecimal().divide(ne.getDecimal(), mathContext);
     }
-    public Object remainder(NumericWrapper ne) {
+    public Object remainder(ElementWrapper<?> ne) {
         if (this.getDecimal() == null || ne.getDecimal() == null) {
             return NULL;
         }
         return this.getDecimal().remainder(ne.getDecimal(), mathContext);
     }
 
-    public Object pow(NumericWrapper ne) {
+    public Object pow(ElementWrapper<?> ne) {
         if (this.getDecimal() == null || ne.getDecimal() == null) {
             return NULL;
         }
         return Utils.pow(this.getDecimal(), ne.getDecimal());
     }
     @Override
-    public int compareTo(NumericWrapper ne) {
-        if (this.getDecimal() == null || ne.getDecimal() == null) {
+    public int compareTo(@Nonnull T ne) {
+        if (this.getDecimal() == null || ((ElementWrapper<?>)ne).getDecimal() == null) {
             return -1;
         }
-        return this.getDecimal().compareTo(ne.getDecimal());
+        return this.getDecimal().compareTo(((ElementWrapper<?>)ne).getDecimal());
     }
 }

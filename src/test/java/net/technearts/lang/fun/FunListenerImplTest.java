@@ -201,19 +201,25 @@ class FunListenerImplTest {
     void testFibonacci() {
         String code = """
                     fib : { [1 1].it ?? (this(it - 1) + this(it - 2)) };
-                    x : fib 5;
+                    x : fib 0;
+                    y : fib 5;
                 """;
         evaluate(code);
-        assertNumbersEqual(8, env.get("x"));
+        assertNumbersEqual(1, env.get("x"));
+        assertNumbersEqual(8, env.get("y"));
     }
 
     @Test
     void testFatorial() {
         String code = """
                     fat : { [1 1].it ?? (this(it - 1) * it) };
-                    x : fat 0;
+                    x : fat 1;
+                    y : fat 3;
+                    z : fat 5;
                 """;
         evaluate(code);
         assertNumbersEqual(1, env.get("x"));
+        assertNumbersEqual(6, env.get("y"));
+        assertNumbersEqual(120, env.get("z"));
     }
 }
