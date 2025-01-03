@@ -10,7 +10,7 @@ import static java.lang.String.valueOf;
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.ZERO;
 import static java.math.RoundingMode.HALF_UP;
-import static net.technearts.lang.fun.Nil.NULL;
+import static net.technearts.lang.fun.ElementWrapper.Nil.NULL;
 
 public class ElementWrapper<T> implements Comparable<T>{
     private final T value;
@@ -78,5 +78,9 @@ public class ElementWrapper<T> implements Comparable<T>{
             return -1;
         }
         return this.getDecimal().compareTo(((ElementWrapper<?>)ne).getDecimal());
+    }
+
+    public enum Nil {
+        NULL
     }
 }

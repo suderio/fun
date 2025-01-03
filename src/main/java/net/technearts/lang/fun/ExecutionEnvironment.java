@@ -8,7 +8,7 @@ import java.util.Map;
 
 import static java.lang.System.out;
 import static java.math.RoundingMode.HALF_UP;
-import static net.technearts.lang.fun.Nil.NULL;
+import static net.technearts.lang.fun.ElementWrapper.Nil.NULL;
 
 public class ExecutionEnvironment {
     private final Map<String, Object> variables = new HashMap<>();

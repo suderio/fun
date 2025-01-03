@@ -1,312 +1,388 @@
 package net.technearts.lang.fun;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-
-import static java.lang.String.valueOf;
-import static java.lang.System.err;
-import static java.lang.System.out;
-import static net.technearts.lang.fun.Nil.NULL;
+import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class FunListenerImpl extends FunBaseListener {
-    private final ExecutionEnvironment env;
+    @Override
+    public void enterFileTable(FunParser.FileTableContext ctx) {
+        System.out.println("enterFileTable(ctx)");
+    }
 
-    public FunListenerImpl(ExecutionEnvironment env) {
-        this.env = env;
+    @Override
+    public void exitFileTable(FunParser.FileTableContext ctx) {
+        System.out.println("exitFileTable(ctx)");
+    }
+
+    @Override
+    public void enterAssignExp(FunParser.AssignExpContext ctx) {
+        System.out.println("enterAssignExp(ctx)");
     }
 
     @Override
     public void exitAssignExp(FunParser.AssignExpContext ctx) {
-        String variableName = ctx.ID().getText();
-        Object value = env.pop();
-        env.put(variableName, value);
+        System.out.println("exitAssignExp(ctx)");
     }
 
     @Override
     public void enterOperatorExp(FunParser.OperatorExpContext ctx) {
-        env.turnOff();
+        System.out.println("enterOperatorExp(ctx)");
     }
 
     @Override
     public void exitOperatorExp(FunParser.OperatorExpContext ctx) {
-        env.turnOn();
-        String operatorName = ctx.ID().getText();
-        Object body = ctx.op;
-        env.put(operatorName, body);
+        System.out.println("exitOperatorExp(ctx)");
     }
 
-//    @Override
-//    public void exitNonAssignExp(FunParser.NonAssignExpContext ctx) {
-//        // Apenas preserva o valor da expressão avaliada na pilha
-//    }
+    @Override
+    public void enterExpressionExp(FunParser.ExpressionExpContext ctx) {
+        System.out.println("enterExpressionExp(ctx)");
+    }
 
     @Override
-    public void exitIntegerLiteral(FunParser.IntegerLiteralContext ctx) {
-        env.push(new BigInteger(ctx.INTEGER().getText()));
+    public void exitExpressionExp(FunParser.ExpressionExpContext ctx) {
+        System.out.println("exitExpressionExp(ctx)");
+    }
+
+    @Override
+    public void enterDecimalLiteral(FunParser.DecimalLiteralContext ctx) {
+        System.out.println("enterDecimalLiteral(ctx)");
     }
 
     @Override
     public void exitDecimalLiteral(FunParser.DecimalLiteralContext ctx) {
-        env.push(new BigDecimal(ctx.DECIMAL().getText()));
+        System.out.println("exitDecimalLiteral(ctx)");
     }
 
     @Override
-    public void exitStringLiteral(FunParser.StringLiteralContext ctx) {
-        env.push(ctx.SIMPLESTRING().getText().replaceAll("^\"|\"$", ""));
-    }
-
-    @Override
-    public void exitTrueLiteral(FunParser.TrueLiteralContext ctx) {
-        env.push(true);
-    }
-
-    @Override
-    public void exitFalseLiteral(FunParser.FalseLiteralContext ctx) {
-        env.push(false);
-    }
-
-    @Override
-    public void exitNullLiteral(FunParser.NullLiteralContext ctx) {
-        env.push(NULL);
-    }
-
-    @Override
-    public void exitIdAtomExp(FunParser.IdAtomExpContext ctx) {
-        String variableName = ctx.ID().getText();
-        if (env.isMissing(variableName)) {
-            env.push(NULL);
-            err.printf("Warning: %s is missing from environment. Null was pushed into the stack.\n", ctx.ID().getText());
-        } else {
-            env.push(env.get(variableName));
-        }
-    }
-
-    @Override
-    public void exitAddSubExp(FunParser.AddSubExpContext ctx) {
-        var right = env.pop();
-        var left = env.pop();
-        if (right instanceof BigDecimal || left instanceof BigDecimal) {
-            if (ctx.getChild(1).getText().equals("+")) {
-                env.push((new BigDecimal(valueOf(left))).add((new BigDecimal(valueOf(right)))));
-            } else {
-                env.push((new BigDecimal(valueOf(left))).subtract((new BigDecimal(valueOf(right)))));
-            }
-        } else if (right instanceof BigInteger && left instanceof BigInteger) {
-            if (ctx.getChild(1).getText().equals("+")) {
-                env.push(((BigInteger) left).add(((BigInteger) right)));
-            } else {
-                env.push(((BigInteger) left).subtract(((BigInteger) right)));
-            }
-        } else {
-            err.printf("Warning: %s or %s is not supported. Null was pushed into the stack.\n", left, right);
-            env.push(NULL);
-        }
-    }
-
-    @Override
-    public void exitMulDivModExp(FunParser.MulDivModExpContext ctx) {
-        var right = new ElementWrapper(env.pop());
-        var left = new ElementWrapper(env.pop());
-        switch (ctx.getChild(1).getText()) {
-            case "*" -> env.push(left.multiply(right));
-            case "/" -> env.push(left.divide(right));
-            case "%" -> env.push(left.remainder(right));
-        }
-    }
-
-    @Override
-    public void exitComparisonExp(FunParser.ComparisonExpContext ctx) {
-        var right = new ElementWrapper(env.pop());
-        var left = new ElementWrapper(env.pop());
-        boolean result = switch (ctx.getChild(1).getText()) {
-            case "<" -> left.compareTo(right) < 0;
-            case "<=" -> left.compareTo(right) <= 0;
-            case ">" -> left.compareTo(right) > 0;
-            case ">=" -> left.compareTo(right) >= 0;
-            default -> throw new RuntimeException("Operador de comparação desconhecido.");
-        };
-        env.push(result);
-    }
-
-    @Override
-    public void exitEqualityExp(FunParser.EqualityExpContext ctx) {
-        var right = new ElementWrapper(env.pop());
-        var left = new ElementWrapper(env.pop());
-        boolean result = switch (ctx.getChild(1).getText()) {
-            case "=" -> left.compareTo(right) == 0;
-            case "<>", "~=" -> left.compareTo(right) != 0;
-            default -> throw new RuntimeException("Operador de igualdade desconhecido.");
-        };
-        env.push(result);
-    }
-
-    @Override
-    public void enterNullTestExp(FunParser.NullTestExpContext ctx) {
-        out.println("Entering Null Test");
-    }
-
-    @Override
-    public void exitNullTestExp(FunParser.NullTestExpContext ctx) {
-        Object right = env.pop();
-        Object left = env.pop();
-        env.push(left != NULL ? left : right);
-        out.println("Exiting Null Test");
-    }
-
-    @Override
-    public void exitTableConstructExp(FunParser.TableConstructExpContext ctx) {
-        Table table = new Table();
-        while (!env.isEmpty()) {
-            table.put(env.last());
-        }
-        env.push(table);
+    public void enterAndExp(FunParser.AndExpContext ctx) {
+        System.out.println("enterAndExp(ctx)");
     }
 
     @Override
     public void exitAndExp(FunParser.AndExpContext ctx) {
-        boolean right = (boolean) env.pop();
-        boolean left = (boolean) env.pop();
-        env.push(left && right);
+        System.out.println("exitAndExp(ctx)");
     }
 
     @Override
-    public void exitOrExp(FunParser.OrExpContext ctx) {
-        boolean right = (boolean) env.pop();
-        boolean left = (boolean) env.pop();
-        env.push(left || right);
+    public void enterOrShortExp(FunParser.OrShortExpContext ctx) {
+        System.out.println("enterOrShortExp(ctx)");
     }
 
     @Override
-    public void exitXorExp(FunParser.XorExpContext ctx) {
-        boolean right = (boolean) env.pop();
-        boolean left = (boolean) env.pop();
-        env.push(left ^ right);
+    public void exitOrShortExp(FunParser.OrShortExpContext ctx) {
+        System.out.println("exitOrShortExp(ctx)");
     }
 
     @Override
-    public void exitCallExp(FunParser.CallExpContext ctx) {
-        String functionName = ctx.ID().getText();
-        Object argument = env.pop();
-
-        if (env.isMissing(functionName)) {
-            env.push(NULL);
-        } else if (env.get(functionName) instanceof FunParser.ExpressionContext body) {
-            // Avalia a função como um operador unário
-            env.put("it", argument); // Define o "it" para o argumento da função
-            env.put("this", body); // Define o "this" para o argumento da função
-            new ParseTreeWalker().walk(this, body); // Avalia o corpo da função
-            env.remove("it");
-            env.remove("this");
-        } else { // This is in fact a variable
-            env.push(env.get(functionName));
-        }
+    public void enterNullTestExp(FunParser.NullTestExpContext ctx) {
+        System.out.println("enterNullTestExp(ctx)");
     }
 
     @Override
-    public void exitThisExp(FunParser.ThisExpContext ctx) {
-        if (env.isMissing("this")) {
-            err.printf("Warning: 'this' is missing from environment of %s. Null was pushed into the stack.\n", ctx.getText());
-            env.push(NULL);
-        } else {
-            env.push(env.get("this"));
-        }
+    public void exitNullTestExp(FunParser.NullTestExpContext ctx) {
+        System.out.println("exitNullTestExp(ctx)");
     }
 
     @Override
-    public void exitDerefExp(FunParser.DerefExpContext ctx) {
-        Object key = env.pop();
-        Object base = env.pop();
-
-        if (base instanceof Table) {
-            if (((Table) base).containsKey(key)) {
-                env.push(((Table) base).get(key));
-                return;
-            }
-        }
-        err.printf("Warning: Dereference of %s is missing from Table. Null was pushed into the stack.\n", key);
-        env.push(NULL);
-    }
-
-    @Override
-    public void exitTableConcatSepExp(FunParser.TableConcatSepExpContext ctx) {
-        var left = env.pop();
-        Table table;
-        if (left instanceof Table) {
-            table = (Table) left;
-        } else {
-            table = new Table();
-            table.put(left);
-        }
-        table.push(env.pop());
-        env.push(table);
-    }
-
-    @Override
-    public void exitUnaryExp(FunParser.UnaryExpContext ctx) {
-        Object operand = env.pop();
-        switch (ctx.getChild(0).getText()) {
-            case "+" -> env.push(operand); // Retorna o mesmo valor
-            case "-" ->
-                    env.push(operand instanceof BigDecimal decimal ? decimal.negate() : operand instanceof BigInteger integer ? integer.negate() : NULL);
-            case "~" -> env.push(operand instanceof Boolean bool ? !bool : NULL);
-            default -> throw new RuntimeException("Operador unário desconhecido: " + ctx.getChild(0).getText());
-        }
-    }
-
-    @Override
-    public void exitPowerExp(FunParser.PowerExpContext ctx) {
-        var right = new ElementWrapper(env.pop());
-        var left = new ElementWrapper(env.pop());
-        env.push(left.pow(right));
-    }
-
-    @Override
-    public void exitParenthesisExp(FunParser.ParenthesisExpContext ctx) {
-        // Apenas empilha o resultado da expressão dentro do parêntese
+    public void enterItAtomLiteral(FunParser.ItAtomLiteralContext ctx) {
+        System.out.println("enterItAtomLiteral(ctx)");
     }
 
     @Override
     public void exitItAtomLiteral(FunParser.ItAtomLiteralContext ctx) {
-        if (env.isMissing("it")) {
-            err.printf("Warning: 'it' is missing from %s. Null was pushed into the stack.\n", ctx.getText());
-            env.push(NULL);
-        } else {
-            env.push(env.get("it"));
-        }
+        System.out.println("exitItAtomLiteral(ctx)");
+    }
+
+    @Override
+    public void enterTrueLiteral(FunParser.TrueLiteralContext ctx) {
+        System.out.println("enterTrueLiteral(ctx)");
+    }
+
+    @Override
+    public void exitTrueLiteral(FunParser.TrueLiteralContext ctx) {
+        System.out.println("exitTrueLiteral(ctx)");
+    }
+
+    @Override
+    public void enterIdAtomExp(FunParser.IdAtomExpContext ctx) {
+        System.out.println("enterIdAtomExp(ctx)");
+    }
+
+    @Override
+    public void exitIdAtomExp(FunParser.IdAtomExpContext ctx) {
+        System.out.println("exitIdAtomExp(ctx)");
+    }
+
+    @Override
+    public void enterFalseLiteral(FunParser.FalseLiteralContext ctx) {
+        System.out.println("enterFalseLiteral(ctx)");
+    }
+
+    @Override
+    public void exitFalseLiteral(FunParser.FalseLiteralContext ctx) {
+        System.out.println("exitFalseLiteral(ctx)");
+    }
+
+    @Override
+    public void enterShiftExp(FunParser.ShiftExpContext ctx) {
+        System.out.println("enterShiftExp(ctx)");
+    }
+
+    @Override
+    public void exitShiftExp(FunParser.ShiftExpContext ctx) {
+        System.out.println("exitShiftExp(ctx)");
+    }
+
+    @Override
+    public void enterXorExp(FunParser.XorExpContext ctx) {
+        System.out.println("enterXorExp(ctx)");
+    }
+
+    @Override
+    public void exitXorExp(FunParser.XorExpContext ctx) {
+        System.out.println("exitXorExp(ctx)");
+    }
+
+    @Override
+    public void enterThisExp(FunParser.ThisExpContext ctx) {
+        System.out.println("enterThisExp(ctx)");
+    }
+
+    @Override
+    public void exitThisExp(FunParser.ThisExpContext ctx) {
+        System.out.println("exitThisExp(ctx)");
+    }
+
+    @Override
+    public void enterDerefExp(FunParser.DerefExpContext ctx) {
+        System.out.println("enterDerefExp(ctx)");
+    }
+
+    @Override
+    public void exitDerefExp(FunParser.DerefExpContext ctx) {
+        System.out.println("exitDerefExp(ctx)");
+    }
+
+    @Override
+    public void enterSubstExp(FunParser.SubstExpContext ctx) {
+        System.out.println("enterSubstExp(ctx)");
+    }
+
+    @Override
+    public void exitSubstExp(FunParser.SubstExpContext ctx) {
+        System.out.println("exitSubstExp(ctx)");
+    }
+
+    @Override
+    public void enterAndShortExp(FunParser.AndShortExpContext ctx) {
+        System.out.println("enterAndShortExp(ctx)");
+    }
+
+    @Override
+    public void exitAndShortExp(FunParser.AndShortExpContext ctx) {
+        System.out.println("exitAndShortExp(ctx)");
+    }
+
+    @Override
+    public void enterTestExp(FunParser.TestExpContext ctx) {
+        System.out.println("enterTestExp(ctx)");
     }
 
     @Override
     public void exitTestExp(FunParser.TestExpContext ctx) {
-        Object fallback = env.pop();
-        Object condition = env.pop();
+        System.out.println("exitTestExp(ctx)");
+    }
 
-        Object result = null;
-        if (condition == NULL) {
-            err.printf("Warning: a test was made with null condition and %s fallback. You should use the Null Test (??) operator.\n", fallback);
-            result = NULL;
-        } else if (condition instanceof Boolean) {
-            result = (Boolean) condition ? true : fallback;
-        } else if (condition instanceof BigDecimal || condition instanceof BigInteger) {
-            result = BigDecimal.ZERO.compareTo(new BigDecimal(valueOf(condition))) == 0 ? fallback : condition;
-        } else if (condition instanceof Table) {
-            result = ((Table) condition).isEmpty() ? fallback : condition;
-        }
-        env.push(result);
+    @Override
+    public void enterNullLiteral(FunParser.NullLiteralContext ctx) {
+        System.out.println("enterNullLiteral(ctx)");
+    }
+
+    @Override
+    public void exitNullLiteral(FunParser.NullLiteralContext ctx) {
+        System.out.println("exitNullLiteral(ctx)");
+    }
+
+    @Override
+    public void enterTableConstructExp(FunParser.TableConstructExpContext ctx) {
+        System.out.println("enterTableConstructExp(ctx)");
+    }
+
+    @Override
+    public void exitTableConstructExp(FunParser.TableConstructExpContext ctx) {
+        System.out.println("exitTableConstructExp(ctx)");
+    }
+
+    @Override
+    public void enterEqualityExp(FunParser.EqualityExpContext ctx) {
+        System.out.println("enterEqualityExp(ctx)");
+    }
+
+    @Override
+    public void exitEqualityExp(FunParser.EqualityExpContext ctx) {
+        System.out.println("exitEqualityExp(ctx)");
+    }
+
+    @Override
+    public void enterDocStringLiteral(FunParser.DocStringLiteralContext ctx) {
+        System.out.println("enterDocStringLiteral(ctx)");
+    }
+
+    @Override
+    public void exitDocStringLiteral(FunParser.DocStringLiteralContext ctx) {
+        System.out.println("exitDocStringLiteral(ctx)");
+    }
+
+    @Override
+    public void enterOrExp(FunParser.OrExpContext ctx) {
+        System.out.println("enterOrExp(ctx)");
+    }
+
+    @Override
+    public void exitOrExp(FunParser.OrExpContext ctx) {
+        System.out.println("exitOrExp(ctx)");
+    }
+
+    @Override
+    public void enterCallExp(FunParser.CallExpContext ctx) {
+        System.out.println("enterCallExp(ctx)");
+    }
+
+    @Override
+    public void exitCallExp(FunParser.CallExpContext ctx) {
+        System.out.println("exitCallExp(ctx)");
+    }
+
+    @Override
+    public void enterAddSubExp(FunParser.AddSubExpContext ctx) {
+        System.out.println("enterAddSubExp(ctx)");
+    }
+
+    @Override
+    public void exitAddSubExp(FunParser.AddSubExpContext ctx) {
+        System.out.println("exitAddSubExp(ctx)");
+    }
+
+    @Override
+    public void enterAssignOpExp(FunParser.AssignOpExpContext ctx) {
+        System.out.println("enterAssignOpExp(ctx)");
+    }
+
+    @Override
+    public void exitAssignOpExp(FunParser.AssignOpExpContext ctx) {
+        System.out.println("exitAssignOpExp(ctx)");
+    }
+
+    @Override
+    public void enterRangeExp(FunParser.RangeExpContext ctx) {
+        System.out.println("enterRangeExp(ctx)");
+    }
+
+    @Override
+    public void exitRangeExp(FunParser.RangeExpContext ctx) {
+        System.out.println("exitRangeExp(ctx)");
+    }
+
+    @Override
+    public void enterPowerExp(FunParser.PowerExpContext ctx) {
+        System.out.println("enterPowerExp(ctx)");
+    }
+
+    @Override
+    public void exitPowerExp(FunParser.PowerExpContext ctx) {
+        System.out.println("exitPowerExp(ctx)");
+    }
+
+    @Override
+    public void enterMulDivModExp(FunParser.MulDivModExpContext ctx) {
+        System.out.println("enterMulDivModExp(ctx)");
+    }
+
+    @Override
+    public void exitMulDivModExp(FunParser.MulDivModExpContext ctx) {
+        System.out.println("exitMulDivModExp(ctx)");
+    }
+
+    @Override
+    public void enterUnaryExp(FunParser.UnaryExpContext ctx) {
+        System.out.println("enterUnaryExp(ctx)");
+    }
+
+    @Override
+    public void exitUnaryExp(FunParser.UnaryExpContext ctx) {
+        System.out.println("exitUnaryExp(ctx)");
+    }
+
+    @Override
+    public void enterStringLiteral(FunParser.StringLiteralContext ctx) {
+        System.out.println("enterStringLiteral(ctx)");
+    }
+
+    @Override
+    public void exitStringLiteral(FunParser.StringLiteralContext ctx) {
+        System.out.println("exitStringLiteral(ctx)");
+    }
+
+    @Override
+    public void enterComparisonExp(FunParser.ComparisonExpContext ctx) {
+        System.out.println("enterComparisonExp(ctx)");
+    }
+
+    @Override
+    public void exitComparisonExp(FunParser.ComparisonExpContext ctx) {
+        System.out.println("exitComparisonExp(ctx)");
+    }
+
+    @Override
+    public void enterTableConcatSepExp(FunParser.TableConcatSepExpContext ctx) {
+        System.out.println("enterTableConcatSepExp(ctx)");
+    }
+
+    @Override
+    public void exitTableConcatSepExp(FunParser.TableConcatSepExpContext ctx) {
+        System.out.println("exitTableConcatSepExp(ctx)");
+    }
+
+    @Override
+    public void enterParenthesisExp(FunParser.ParenthesisExpContext ctx) {
+        System.out.println("enterParenthesisExp(ctx)");
+    }
+
+    @Override
+    public void exitParenthesisExp(FunParser.ParenthesisExpContext ctx) {
+        System.out.println("exitParenthesisExp(ctx)");
+    }
+
+    @Override
+    public void enterIntegerLiteral(FunParser.IntegerLiteralContext ctx) {
+        System.out.println("enterIntegerLiteral(ctx)");
+    }
+
+    @Override
+    public void exitIntegerLiteral(FunParser.IntegerLiteralContext ctx) {
+        System.out.println("exitIntegerLiteral(ctx)");
     }
 
     @Override
     public void enterEveryRule(ParserRuleContext ctx) {
-        super.enterEveryRule(ctx);
-        if (env.isDebug()) out.printf("Entering %s\n", ctx.getText());
+        System.out.println("enterEveryRule(ctx)");
     }
 
     @Override
     public void exitEveryRule(ParserRuleContext ctx) {
-        super.exitEveryRule(ctx);
-        if (env.isDebug()) out.printf("Exiting %s\n", ctx.getText());
+        System.out.println("exitEveryRule(ctx)");
+    }
+
+    @Override
+    public void visitTerminal(TerminalNode node) {
+        System.out.println("visitTerminal(node)");
+    }
+
+    @Override
+    public void visitErrorNode(ErrorNode node) {
+        System.out.println("visitErrorNode(node)");
     }
 }
 

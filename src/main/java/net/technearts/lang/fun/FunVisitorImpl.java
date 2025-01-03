@@ -6,9 +6,8 @@ import java.math.BigInteger;
 
 import static java.lang.String.valueOf;
 import static java.lang.System.err;
-import static java.lang.System.out;
 import static net.technearts.lang.fun.ElementWrapper.wrap;
-import static net.technearts.lang.fun.Nil.NULL;
+import static net.technearts.lang.fun.ElementWrapper.Nil.NULL;
 
 public class FunVisitorImpl extends FunBaseVisitor<Object> {
     private final ExecutionEnvironment env;
@@ -79,7 +78,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         Table table = new Table();
         table.put(left);
         if (right instanceof Table t1) {
-            t1.forEach((k,v) -> table.put(v));
+            t1.forEach((k, v) -> table.put(v));
         } else {
             table.put(right);
         }
@@ -222,8 +221,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     @Override
     public Object visitNullTestExp(FunParser.NullTestExpContext ctx) {
         Object left = visit(ctx.expression(0));
-        Object right = visit(ctx.expression(1));
-        return left != NULL ? left : right;
+        return left != NULL ? left : visit(ctx.expression(1));
     }
 
     @Override
@@ -281,8 +279,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
             env.put("it", argument);
             env.put("this", body);
             Object result = visit(body);
-            env.remove("it");
             env.remove("this");
+            env.remove("it");
             return result;
         } else {
             return env.get(functionName);
@@ -296,10 +294,10 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
             return NULL;
         } else if (env.get("this") instanceof FunParser.ExpressionContext body) {
             var argument = visit(ctx.expression());
-            err.printf("Calling this(%s)\n", argument);
+            var oldIt = env.get("it");
             env.put("it", argument);
             Object result = visit(body);
-            env.remove("it");
+            env.put("it", oldIt);
             return result;
         } else {
             err.println("Warning: 'this' is missing in environment. Null was returned.");
@@ -321,16 +319,15 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     @Override
     public Object visitTestExp(FunParser.TestExpContext ctx) {
         Object condition = visit(ctx.expression(0));
-        Object fallback = visit(ctx.expression(1));
         if (condition == NULL) {
             err.println("Warning: Test with null condition.");
             return NULL;
         } else if (condition instanceof Boolean bool) {
-            return bool ? true : fallback;
+            return bool ? true : visit(ctx.expression(1));
         } else if (condition instanceof Number number) {
-            return BigDecimal.ZERO.compareTo(new BigDecimal(valueOf(number))) == 0 ? fallback : condition;
+            return BigDecimal.ZERO.compareTo(new BigDecimal(valueOf(number))) == 0 ? visit(ctx.expression(1)): condition;
         } else if (condition instanceof Table table) {
-            return table.isEmpty() ? fallback : condition;
+            return table.isEmpty() ? visit(ctx.expression(1)) : condition;
         }
         return NULL;
     }

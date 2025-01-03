@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import static net.technearts.lang.fun.Nil.NULL;
+import static net.technearts.lang.fun.ElementWrapper.Nil.NULL;
 import static net.technearts.lang.fun.TestUtils.assertNumbersEqual;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +28,7 @@ class FunListenerImplTest {
         FunParser parser = new FunParser(tokens);
         parser.addErrorListener(ConsoleErrorListener.INSTANCE);
         parser.getInterpreter().setPredictionMode(PredictionMode.LL_EXACT_AMBIG_DETECTION);
+        //parser.addParseListener(new FunListenerImpl());
         ParseTree tree = parser.file();
         env = new ExecutionEnvironment();
         FunVisitorImpl visitor = new FunVisitorImpl(env);
@@ -41,7 +42,7 @@ class FunListenerImplTest {
                     x : 42;
                     y : x + 8;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertNumbersEqual(42, env.get("x"));
         assertNumbersEqual(50, env.get("y"));
     }
@@ -53,7 +54,7 @@ class FunListenerImplTest {
                     y : +20;
                     z : ~true;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertNumbersEqual(-10, env.get("x"));
         assertNumbersEqual(20, env.get("y"));
         assertEquals(false, env.get("z"));
@@ -66,7 +67,7 @@ class FunListenerImplTest {
                     y : (2 + 3) * 4;
                     z : 10 ** 2;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertNumbersEqual(14, env.get("x"));
         assertNumbersEqual(20, env.get("y"));
         assertTrue(Double.MIN_VALUE < BigDecimal.valueOf(100.0).subtract((BigDecimal) env.get("z"), env.getMathContext()).abs().doubleValue());
@@ -79,7 +80,7 @@ class FunListenerImplTest {
                     y : true || false;
                     z : true ^ false;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertEquals(false, env.get("x"));
         assertEquals(true, env.get("y"));
         assertEquals(true, env.get("z"));
@@ -95,7 +96,7 @@ class FunListenerImplTest {
                     e : 10 < 15;
                     f : 10 <= 10;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertEquals(true, env.get("a"));
         assertEquals(true, env.get("b"));
         assertEquals(true, env.get("c"));
@@ -110,7 +111,7 @@ class FunListenerImplTest {
                     x : null ?? 42;
                     y : 10 ?? 42;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertNumbersEqual(42, env.get("x"));
         assertNumbersEqual(10, env.get("y"));
     }
@@ -121,7 +122,7 @@ class FunListenerImplTest {
                     x : null ? 42;
                     y : 10 ? 42;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertEquals(NULL, env.get("x")); // null retorna o valor da direita
         assertNumbersEqual(10, env.get("y")); // valor não nulo retorna ele mesmo
     }
@@ -131,7 +132,7 @@ class FunListenerImplTest {
         String code = """
                     t : [1 2 3 "hello"];
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         Table table = (Table) env.get("t");
         assertNumbersEqual(1, table.get(BigInteger.ZERO));
         assertNumbersEqual(2, table.get(BigInteger.ONE));
@@ -144,7 +145,7 @@ class FunListenerImplTest {
         String code = """
                     t : 1, 2, 3, 4;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         Table table = (Table) env.get("t");
         assertNumbersEqual(1, table.get(BigInteger.ZERO));
         assertNumbersEqual(2, table.get(BigInteger.ONE));
@@ -158,7 +159,7 @@ class FunListenerImplTest {
                     t : [1 2 3];
                     x : t.1;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertNumbersEqual(2, env.get("x"));
     }
 
@@ -167,7 +168,7 @@ class FunListenerImplTest {
         String code = """
                     x : 10 + (20 * (5 - 2));
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertNumbersEqual(70, env.get("x"));
     }
 
@@ -181,7 +182,7 @@ class FunListenerImplTest {
                     y : pos 20;
                     z : inv true;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertNumbersEqual(-10, env.get("x"));
         assertNumbersEqual(20, env.get("y"));
         assertEquals(false, env.get("z"));
@@ -193,18 +194,18 @@ class FunListenerImplTest {
                     sq: { it * it };
                     x : sq 4;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertNumbersEqual(16, env.get("x"));
     }
 
     @Test
     void testFibonacci() {
         String code = """
-                    fib : { [1 1].it ?? (this(it - 1) + this(it - 2)) };
+                    fib : { [1 1].it ?? (this(it - 1)) + (this(it - 2)) };
                     x : fib 0;
                     y : fib 5;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertNumbersEqual(1, env.get("x"));
         assertNumbersEqual(8, env.get("y"));
     }
@@ -212,12 +213,12 @@ class FunListenerImplTest {
     @Test
     void testFatorial() {
         String code = """
-                    fat : { [1 1].it ?? (this(it - 1) * it) };
+                    fat : { [1 1].it ?? (this(it - 1)) * it };
                     x : fat 1;
                     y : fat 3;
                     z : fat 5;
                 """;
-        evaluate(code);
+        System.out.println(evaluate(code));
         assertNumbersEqual(1, env.get("x"));
         assertNumbersEqual(6, env.get("y"));
         assertNumbersEqual(120, env.get("z"));
