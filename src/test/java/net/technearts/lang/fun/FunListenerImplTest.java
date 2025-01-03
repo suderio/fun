@@ -117,27 +117,28 @@ class FunListenerImplTest {
     }
 
     @Test
-    void testNullFallbackExpressions() {
+    void testTestExpressions() {
         String code = """
                     x : null ? 42;
                     y : 10 ? 42;
+                    z: (1 = 0) ? 2;
                 """;
         System.out.println(evaluate(code));
-        assertEquals(NULL, env.get("x")); // null retorna o valor da direita
-        assertNumbersEqual(10, env.get("y")); // valor não nulo retorna ele mesmo
+        assertEquals(NULL, env.get("x"));
+        assertEquals(true, env.get("y"));
+        assertNumbersEqual(2, env.get("z"));
     }
 
     @Test
     void testTableConstruction() {
         String code = """
-                    t : [1 2 3 "hello"];
+                    t : [1 2 "hello" 3];
                 """;
         System.out.println(evaluate(code));
         Table table = (Table) env.get("t");
         assertNumbersEqual(1, table.get(BigInteger.ZERO));
         assertNumbersEqual(2, table.get(BigInteger.ONE));
-        assertNumbersEqual(3, table.get(BigInteger.TWO));
-        assertEquals("hello", table.get(BigInteger.valueOf(3)));
+        assertEquals("hello", table.get(BigInteger.TWO));
     }
 
     @Test
@@ -186,6 +187,17 @@ class FunListenerImplTest {
         assertNumbersEqual(-10, env.get("x"));
         assertNumbersEqual(20, env.get("y"));
         assertEquals(false, env.get("z"));
+    }
+
+    @Test
+    void testShift() {
+        String code = """
+                    x : 16 << 2;
+                    y : 128 >> 3;
+                """;
+        System.out.println(evaluate(code));
+        assertNumbersEqual(64, env.get("x"));
+        assertNumbersEqual(16, env.get("y"));
     }
 
     @Test

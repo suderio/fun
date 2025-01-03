@@ -18,8 +18,18 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitShiftExp(FunParser.ShiftExpContext ctx) {
-        // TODO
-        return super.visitShiftExp(ctx);
+        var left = wrap(visit(ctx.expression(0)));  // Avalia o lado esquerdo
+        var right = wrap(visit(ctx.expression(1))); // Avalia o lado direito
+
+        if (ctx.RSHIFT() != null) {
+            // Deslocamento à direita
+            return left.shiftRight(right);
+        } else if (ctx.LSHIFT() != null) {
+            // Deslocamento à esquerda
+            return left.shiftLeft(right);
+        } else {
+            throw new RuntimeException("Operador desconhecido para ShiftExp.");
+        }
     }
 
     @Override
@@ -325,9 +335,9 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         } else if (condition instanceof Boolean bool) {
             return bool ? true : visit(ctx.expression(1));
         } else if (condition instanceof Number number) {
-            return BigDecimal.ZERO.compareTo(new BigDecimal(valueOf(number))) == 0 ? visit(ctx.expression(1)): condition;
+            return BigDecimal.ZERO.compareTo(new BigDecimal(valueOf(number))) == 0 ? visit(ctx.expression(1)): true;
         } else if (condition instanceof Table table) {
-            return table.isEmpty() ? visit(ctx.expression(1)) : condition;
+            return table.isEmpty() ? visit(ctx.expression(1)) : true;
         }
         return NULL;
     }
