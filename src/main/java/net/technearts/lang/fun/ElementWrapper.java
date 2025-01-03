@@ -46,6 +46,55 @@ public class ElementWrapper<T> implements Comparable<T> {
         };
     }
 
+    public Boolean getBoolean() {
+        return switch (value) {
+            case BigDecimal v -> v.compareTo(ZERO) != 0;
+            case BigInteger v -> v.compareTo(BigInteger.ZERO) != 0;
+            case Table v -> !v.isEmpty();
+            case String v -> !v.isEmpty();
+            case Boolean v -> v;
+            case null, default -> null;
+        };
+    }
+
+    public Object get() {
+        return switch (value) {
+            case BigDecimal v -> v;
+            case null -> null;
+            default -> this.getInteger();
+        };
+    }
+
+    public Boolean isNull() {
+        return this.value == NULL;
+    }
+
+    public Object negate() {
+        return switch (value) {
+            case BigDecimal v -> v.negate();
+            case null -> null;
+            default -> this.getInteger().negate();
+        };
+    }
+
+    public Object add(ElementWrapper<?> ne) {
+        if (this.getDecimal() == null || ne.getDecimal() == null) {
+            return NULL;
+        } else if (this.value instanceof BigDecimal || ne.value instanceof BigDecimal) {
+            return this.getDecimal().add(ne.getDecimal(), mathContext);
+        }
+        return this.getInteger().add(ne.getInteger());
+    }
+
+    public Object subtract(ElementWrapper<?> ne) {
+        if (this.getDecimal() == null || ne.getDecimal() == null) {
+            return NULL;
+        } else if (this.value instanceof BigDecimal || ne.value instanceof BigDecimal) {
+            return this.getDecimal().subtract(ne.getDecimal(), mathContext);
+        }
+        return this.getInteger().subtract(ne.getInteger());
+    }
+
     public Object multiply(ElementWrapper<?> ne) {
         if (this.getDecimal() == null || ne.getDecimal() == null) {
             return NULL;
@@ -53,7 +102,6 @@ public class ElementWrapper<T> implements Comparable<T> {
             return this.getDecimal().multiply(ne.getDecimal(), mathContext);
         }
         return this.getInteger().multiply(ne.getInteger());
-
     }
 
     public Object divide(ElementWrapper<?> ne) {

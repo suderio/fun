@@ -3,11 +3,12 @@ package net.technearts.lang.fun;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import static java.lang.String.valueOf;
 import static java.lang.System.err;
-import static net.technearts.lang.fun.ElementWrapper.wrap;
 import static net.technearts.lang.fun.ElementWrapper.Nil.NULL;
+import static net.technearts.lang.fun.ElementWrapper.wrap;
 
 public class FunVisitorImpl extends FunBaseVisitor<Object> {
     private final ExecutionEnvironment env;
@@ -18,14 +19,12 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitShiftExp(FunParser.ShiftExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));  // Avalia o lado esquerdo
-        var right = wrap(visit(ctx.expression(1))); // Avalia o lado direito
+        var left = wrap(visit(ctx.expression(0)));
+        var right = wrap(visit(ctx.expression(1)));
 
         if (ctx.RSHIFT() != null) {
-            // Deslocamento à direita
             return left.shiftRight(right);
         } else if (ctx.LSHIFT() != null) {
-            // Deslocamento à esquerda
             return left.shiftLeft(right);
         } else {
             throw new RuntimeException("Operador desconhecido para ShiftExp.");
@@ -34,32 +33,84 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitSubstExp(FunParser.SubstExpContext ctx) {
-        // TODO
-        return super.visitSubstExp(ctx);
+        var baseObj = visit(ctx.expression(0));
+        var valuesObj = visit(ctx.expression(1));
+        if (!(baseObj instanceof String base)) {
+            throw new RuntimeException("O lado esquerdo do operador '$' deve ser uma String.");
+        }
+        Table values;
+        if (valuesObj instanceof Table) {
+            values = (Table) valuesObj;
+        } else {
+            values = new Table();
+            values.put(valuesObj);
+        }
+        Pattern pattern = Pattern.compile("\\$(\\d+)");
+        Matcher matcher = pattern.matcher(base);
+        StringBuilder result = new StringBuilder();
+        while (matcher.find()) {
+            int index = Integer.parseInt(matcher.group(1));
+            String replacement = index < values.size() ? String.valueOf(values.get(index)) : matcher.group();
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(result);
+        return result.toString();
     }
 
-    @Override
+
     public Object visitAssignOpExp(FunParser.AssignOpExpContext ctx) {
-        // TODO
-        return super.visitAssignOpExp(ctx);
+        var rightValue = wrap(visit(ctx.expression(1)));
+        String variableName = ctx.expression(0).getText();
+        if (env.isMissing(variableName)) {
+            return NULL;
+        }
+        var currentValue = wrap(env.get(variableName));
+        Object result = switch (ctx.getChild(1).getText()) {
+            case "+=" -> currentValue.add(rightValue);
+            case "-=" -> currentValue.subtract(rightValue);
+            case "*=" -> currentValue.multiply(rightValue);
+            case "/=" -> currentValue.divide(rightValue);
+            case "%=" -> currentValue.remainder(rightValue);
+            default -> throw new RuntimeException("Operador de atribuição desconhecido: " + ctx.getChild(1).getText());
+        };
+        env.put(variableName, result);
+        return result;
     }
 
     @Override
     public Object visitRangeExp(FunParser.RangeExpContext ctx) {
-        // TODO
-        return super.visitRangeExp(ctx);
+        var start = wrap(visit(ctx.expression(0)));
+        var end = wrap(visit(ctx.expression(1)));
+        Table range = new Table();
+        if (start.getInteger().compareTo(end.getInteger()) > 0) {
+            for (var i = start.getInteger(); i.compareTo(end.getInteger()) >= 0; i = i.subtract(BigInteger.ONE)) {
+                range.put(i);
+            }
+        } else {
+            for (var i = start.getInteger(); i.compareTo(end.getInteger()) <= 0; i = i.add(BigInteger.ONE)) {
+                range.put(i);
+            }
+        }
+        return range;
     }
+
 
     @Override
     public Object visitDocStringLiteral(FunParser.DocStringLiteralContext ctx) {
-        // TODO
-        return super.visitDocStringLiteral(ctx);
+        // Obtem o conteúdo bruto do DocString, removendo as aspas delimitadoras
+        String rawDocString = ctx.DOCSTRING().getText().replaceAll("^\"\"\"|\"\"\"$", "");
+        // 1) Normaliza os terminadores de linha para ASCII LF (\n)
+        String normalized = rawDocString.replace("\r\n", "\n").replace("\r", "\n");
+        // 2) Remove o espaço em branco incidental com stripIndent
+        String stripped = normalized.stripIndent();
+        // 3) Interpreta as sequências de escape com translateEscapes e retorna.
+        return stripped.translateEscapes();
     }
 
     @Override
     public Object visitItAtomLiteral(FunParser.ItAtomLiteralContext ctx) {
         if (env.isMissing("it")) {
-            err.printf("Warning: 'it' is missing from %s. Null was pushed into the stack.\n", ctx.getText());
+            debug("Warning: 'it' is missing from %s. Null was pushed into the stack.\n", ctx.getText());
             return NULL;
         } else {
             return env.get("it");
@@ -104,12 +155,13 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitUnaryExp(FunParser.UnaryExpContext ctx) {
-        Object operand = visit(ctx.expression());
+        var operand = wrap(visit(ctx.expression()));
         return switch (ctx.getChild(0).getText()) {
-            case "+" -> operand;
-            case "-" ->
-                    operand instanceof BigDecimal decimal ? decimal.negate() : operand instanceof BigInteger integer ? integer.negate() : NULL;
-            case "~" -> operand instanceof Boolean bool ? !bool : NULL;
+            case "+" -> operand.get();
+            case "-" -> operand.negate();
+            case "~" -> !operand.getBoolean();
+            case "++" -> operand.add(wrap(BigInteger.ONE));
+            case "--" -> operand.subtract(wrap(BigInteger.ONE));
             default -> throw new RuntimeException("Operador unário desconhecido: " + ctx.getChild(0).getText());
         };
     }
@@ -148,7 +200,23 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitStringLiteral(FunParser.StringLiteralContext ctx) {
-        return ctx.SIMPLESTRING().getText().replaceAll("^\"|\"$", "");
+        String rawString = ctx.SIMPLESTRING().getText().replaceAll("^\"|\"$", "");
+        Pattern pattern = Pattern.compile("\\$\\{([a-zA-Z_][a-zA-Z0-9_]*)\\}");
+        Matcher matcher = pattern.matcher(rawString);
+        StringBuilder result = new StringBuilder();
+        while (matcher.find()) {
+            String variableName = matcher.group(1);
+            String replacement;
+            if (env.isMissing(variableName)) {
+                replacement = matcher.group();
+            } else {
+                replacement = String.valueOf(env.get(variableName));
+            }
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(result);
+
+        return result.toString();
     }
 
     @Override
@@ -170,7 +238,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     public Object visitIdAtomExp(FunParser.IdAtomExpContext ctx) {
         String variableName = ctx.ID().getText();
         if (env.isMissing(variableName)) {
-            err.printf("Warning: %s is missing from environment. Null was returned.\n", variableName);
+            debug("Warning: %s is missing from environment. Null was returned.\n", variableName);
             return NULL;
         }
         return env.get(variableName);
@@ -178,36 +246,31 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitAddSubExp(FunParser.AddSubExpContext ctx) {
-        Object left = visit(ctx.expression(0));
-        Object right = visit(ctx.expression(1));
-        if (left instanceof BigDecimal || right instanceof BigDecimal) {
-            BigDecimal l = new BigDecimal(valueOf(left));
-            BigDecimal r = new BigDecimal(valueOf(right));
-            return ctx.PLUS() != null ? l.add(r) : l.subtract(r);
-        } else if (left instanceof BigInteger l && right instanceof BigInteger r) {
-            return ctx.PLUS() != null ? l.add(r) : l.subtract(r);
-        } else {
-            err.printf("Warning: Unsupported types for addition/subtraction: %s, %s. Null was returned.\n", left, right);
-            return NULL;
-        }
+        var left = wrap(visit(ctx.expression(0)));
+        var right = wrap(visit(ctx.expression(1)));
+        return switch (ctx.getChild(1).getText()) {
+            case "+" -> left.add(right);
+            case "-" -> left.subtract(right);
+            default -> throw new RuntimeException("Unknown AddSub operator.");
+        };
     }
 
     @Override
     public Object visitMulDivModExp(FunParser.MulDivModExpContext ctx) {
-        var left = new ElementWrapper<>(visit(ctx.expression(0)));
-        var right = new ElementWrapper<>(visit(ctx.expression(1)));
+        var left = wrap(visit(ctx.expression(0)));
+        var right = wrap(visit(ctx.expression(1)));
         return switch (ctx.getChild(1).getText()) {
             case "*" -> left.multiply(right);
             case "/" -> left.divide(right);
             case "%" -> left.remainder(right);
-            default -> NULL;
+            default -> throw new RuntimeException("Unknown MultDivMod operator.");
         };
     }
 
     @Override
     public Object visitComparisonExp(FunParser.ComparisonExpContext ctx) {
-        var left = new ElementWrapper<>(visit(ctx.expression(0)));
-        var right = new ElementWrapper<>(visit(ctx.expression(1)));
+        var left = wrap(visit(ctx.expression(0)));
+        var right = wrap(visit(ctx.expression(1)));
         return switch (ctx.getChild(1).getText()) {
             case "<" -> left.compareTo(right) < 0;
             case "<=" -> left.compareTo(right) <= 0;
@@ -245,37 +308,37 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitAndShortExp(FunParser.AndShortExpContext ctx) {
-        boolean left = (boolean) visit(ctx.expression(0));
-        if (!left) return false; // Short-circuit
-        return visit(ctx.expression(1));
+        var left = wrap(visit(ctx.expression(0)));
+        if (!left.getBoolean()) return false; // Short-circuit
+        return wrap(visit(ctx.expression(1))).getBoolean();
     }
 
     @Override
     public Object visitAndExp(FunParser.AndExpContext ctx) {
-        boolean left = (boolean) visit(ctx.expression(0));
-        boolean right = (boolean) visit(ctx.expression(1));
-        return left && right;
+        var left = wrap(visit(ctx.expression(0)));
+        var right = wrap(visit(ctx.expression(1)));
+        return left.getBoolean() && right.getBoolean();
     }
 
     @Override
     public Object visitXorExp(FunParser.XorExpContext ctx) {
-        boolean left = (boolean) visit(ctx.expression(0));
-        boolean right = (boolean) visit(ctx.expression(1));
-        return left ^ right;
+        var left = wrap(visit(ctx.expression(0)));
+        var right = wrap(visit(ctx.expression(1)));
+        return left.getBoolean() ^ right.getBoolean();
     }
 
     @Override
     public Object visitOrShortExp(FunParser.OrShortExpContext ctx) {
-        boolean left = (boolean) visit(ctx.expression(0));
-        if (left) return true; // Short-circuit
-        return visit(ctx.expression(1));
+        var left = wrap(visit(ctx.expression(0)));
+        if (left.getBoolean()) return true;
+        return wrap(visit(ctx.expression(1))).getBoolean();
     }
 
     @Override
     public Object visitOrExp(FunParser.OrExpContext ctx) {
-        boolean left = (boolean) visit(ctx.expression(0));
-        boolean right = (boolean) visit(ctx.expression(1));
-        return left || right;
+        var left = wrap(visit(ctx.expression(0)));
+        var right = wrap(visit(ctx.expression(1)));
+        return left.getBoolean() || right.getBoolean();
     }
 
     @Override
@@ -283,7 +346,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         String functionName = ctx.ID().getText();
         Object argument = visit(ctx.expression());
         if (env.isMissing(functionName)) {
-            err.printf("Warning: %s is missing in environment. Null was returned.", functionName);
+            debug("Warning: %s is missing in environment. Null was returned.", functionName);
             return NULL;
         } else if (env.get(functionName) instanceof FunParser.ExpressionContext body) {
             env.put("it", argument);
@@ -300,7 +363,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     @Override
     public Object visitThisExp(FunParser.ThisExpContext ctx) {
         if (env.isMissing("this")) {
-            err.println("Warning: 'this' is missing in environment. Null was returned.");
+            debug("Warning: 'this' is missing in environment. Null was returned.");
             return NULL;
         } else if (env.get("this") instanceof FunParser.ExpressionContext body) {
             var argument = visit(ctx.expression());
@@ -310,7 +373,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
             env.put("it", oldIt);
             return result;
         } else {
-            err.println("Warning: 'this' is missing in environment. Null was returned.");
+            debug("Warning: 'this' is missing in environment. Null was returned.");
             return NULL;
         }
     }
@@ -322,24 +385,29 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         if (base instanceof Table table && table.containsKey(key)) {
             return table.get(key);
         }
-        err.printf("Warning: Dereference of %s is missing in table. Null was returned.\n", key);
+        debug("Warning: Dereference of %s is missing in table. Null was returned.\n", key);
         return NULL;
     }
 
     @Override
     public Object visitTestExp(FunParser.TestExpContext ctx) {
-        Object condition = visit(ctx.expression(0));
-        if (condition == NULL) {
-            err.println("Warning: Test with null condition.");
+        var condition = wrap(visit(ctx.expression(0)));
+        if (condition.isNull()) {
+            debug("Warning: Test with null condition.");
             return NULL;
-        } else if (condition instanceof Boolean bool) {
-            return bool ? true : visit(ctx.expression(1));
-        } else if (condition instanceof Number number) {
-            return BigDecimal.ZERO.compareTo(new BigDecimal(valueOf(number))) == 0 ? visit(ctx.expression(1)): true;
-        } else if (condition instanceof Table table) {
-            return table.isEmpty() ? visit(ctx.expression(1)) : true;
+        } else {
+            return condition.getBoolean() ? condition.getBoolean() : wrap(visit(ctx.expression(1))).getBoolean();
         }
-        return NULL;
+    }
+
+    private void debug(String msg, Object... args) {
+        if (env.isDebug()) {
+            if (args.length == 0) {
+                err.println(msg);
+            } else {
+                err.printf(msg, args);
+            }
+        }
     }
 }
 

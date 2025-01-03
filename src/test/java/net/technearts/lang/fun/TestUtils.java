@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import static java.math.BigDecimal.valueOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestUtils {
     public static void assertNumbersEqual(BigDecimal expected, BigDecimal actual) {
@@ -29,6 +30,14 @@ public class TestUtils {
             assertNumbersEqual(valueOf(expected), (BigDecimal) actual);
         } else if (actual instanceof BigInteger) {
             assertNumbersEqual(valueOf(expected), new BigDecimal((BigInteger) actual));
+        } else {
+            AssertionFailureBuilder.assertionFailure().message(null).expected(expected).actual(actual).buildAndThrow();
+        }
+    }
+
+    public static void assertSizeEquals(Integer expected, Object actual) {
+        if (actual instanceof Table) {
+            assertEquals(expected, ((Table) actual).size());
         } else {
             AssertionFailureBuilder.assertionFailure().message(null).expected(expected).actual(actual).buildAndThrow();
         }

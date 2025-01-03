@@ -13,6 +13,7 @@ import java.math.BigInteger;
 
 import static net.technearts.lang.fun.ElementWrapper.Nil.NULL;
 import static net.technearts.lang.fun.TestUtils.assertNumbersEqual;
+import static net.technearts.lang.fun.TestUtils.assertSizeEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,11 +54,17 @@ class FunListenerImplTest {
                     x : -10;
                     y : +20;
                     z : ~true;
+                    a : --x;
+                    b : ++ [1 2 y];
+                    c : ~8;
                 """;
         System.out.println(evaluate(code));
         assertNumbersEqual(-10, env.get("x"));
         assertNumbersEqual(20, env.get("y"));
         assertEquals(false, env.get("z"));
+        assertNumbersEqual(-11, env.get("a"));
+        assertNumbersEqual(4, env.get("b"));
+        assertEquals(false, env.get("c"));
     }
 
     @Test
@@ -126,7 +133,7 @@ class FunListenerImplTest {
         System.out.println(evaluate(code));
         assertEquals(NULL, env.get("x"));
         assertEquals(true, env.get("y"));
-        assertNumbersEqual(2, env.get("z"));
+        assertEquals(true, env.get("z"));
     }
 
     @Test
@@ -208,6 +215,47 @@ class FunListenerImplTest {
                 """;
         System.out.println(evaluate(code));
         assertNumbersEqual(16, env.get("x"));
+    }
+
+    @Test
+    void testRange() {
+        String code = """
+                    x : 1..5;
+                    y : 8..5;
+                    z : 3..3;
+                """;
+        System.out.println(evaluate(code));
+        assertSizeEquals(5, env.get("x"));
+        assertSizeEquals(4, env.get("y"));
+        assertSizeEquals(1, env.get("z"));
+    }
+
+    @Test
+    void testAssignOpExpression() {
+        String code = """
+                    x : 10;
+                    y : 20;
+                    x += 5;
+                    y *= 2;
+                """;
+        System.out.println(evaluate(code));
+        assertNumbersEqual(15, env.get("x"));
+        assertNumbersEqual(40, env.get("y"));
+    }
+
+    @Test
+    void testSubstExpression() {
+        String code = """
+                    x : 10;
+                    y : "x: ${x}";
+                    z : "0: $0, 1: $1" $ [3 6];
+                """;
+        System.out.println(evaluate(code));
+        var y = (String) env.get("y");
+        assertEquals("x: 10", y);
+        var z = (String) env.get("z");
+        assertTrue(z.startsWith("0: 3"));
+        assertTrue(z.endsWith("1: 6"));
     }
 
     @Test

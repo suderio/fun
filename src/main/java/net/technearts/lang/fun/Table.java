@@ -34,6 +34,10 @@ public class Table extends HashMap<Object, Object> {
         return super.put(valueOf(lastIndex++), value);
     }
 
+    public Object get(int i) {
+        return super.get(valueOf(i));
+    }
+
     public Object push(Object value) {
         if (lastIndex > 0)
             for (int i = lastIndex; i >= 0; i--) {
