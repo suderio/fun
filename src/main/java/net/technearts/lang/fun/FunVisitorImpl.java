@@ -3,6 +3,7 @@ package net.technearts.lang.fun;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,9 +13,11 @@ import static net.technearts.lang.fun.ElementWrapper.wrap;
 
 public class FunVisitorImpl extends FunBaseVisitor<Object> {
     private final ExecutionEnvironment env;
+    private final Table fileTable;
 
     public FunVisitorImpl(ExecutionEnvironment env) {
         this.env = env;
+        this.fileTable = new Table();
     }
 
     @Override
@@ -61,10 +64,10 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     public Object visitAssignOpExp(FunParser.AssignOpExpContext ctx) {
         var rightValue = wrap(visit(ctx.expression(1)));
         String variableName = ctx.expression(0).getText();
-        if (env.isMissing(variableName)) {
+        if (!fileTable.containsKey(variableName)) {
             return NULL;
         }
-        var currentValue = wrap(env.get(variableName));
+        var currentValue = wrap(fileTable.get(variableName));
         Object result = switch (ctx.getChild(1).getText()) {
             case "+=" -> currentValue.add(rightValue);
             case "-=" -> currentValue.subtract(rightValue);
@@ -73,7 +76,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
             case "%=" -> currentValue.remainder(rightValue);
             default -> throw new RuntimeException("Operador de atribuição desconhecido: " + ctx.getChild(1).getText());
         };
-        env.put(variableName, result);
+        fileTable.put(variableName, result);
         return result;
     }
 
@@ -109,22 +112,23 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitItAtomLiteral(FunParser.ItAtomLiteralContext ctx) {
-        if (env.isMissing("it")) {
+        if (!fileTable.containsKey("it")) {
             debug("Warning: 'it' is missing from %s. Null was pushed into the stack.\n", ctx.getText());
             return NULL;
         } else {
-            return env.get("it");
+            return fileTable.get("it");
         }
     }
 
     @Override
     public Object visitFileTable(FunParser.FileTableContext ctx) {
-        Table table = new Table();
+        String fileName = ctx.start.getInputStream().getSourceName();
+        fileTable.setName(fileName);
         for (var expression : ctx.assign()) {
             Object value = visit(expression);
-            table.put(value);
+            fileTable.put(value);
         }
-        return table;
+        return fileTable;
     }
 
     @Override
@@ -175,16 +179,15 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     public Object visitAssignExp(FunParser.AssignExpContext ctx) {
         String variableName = ctx.ID().getText();
         Object value = visit(ctx.expression());
-        env.put(variableName, value);
+        fileTable.put(variableName, value);
         return value;
     }
 
     @Override
     public Object visitOperatorExp(FunParser.OperatorExpContext ctx) {
-        env.turnOff();
+        fileTable.turnOff();
         var body = ctx.op;
-        env.turnOn();
-        env.put(ctx.ID().getText(), body);
+        fileTable.turnOn();
         return body;
     }
 
@@ -207,10 +210,10 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         while (matcher.find()) {
             String variableName = matcher.group(1);
             String replacement;
-            if (env.isMissing(variableName)) {
+            if (!fileTable.containsKey(variableName)) {
                 replacement = matcher.group();
             } else {
-                replacement = String.valueOf(env.get(variableName));
+                replacement = String.valueOf(fileTable.get(variableName));
             }
             matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
         }
@@ -237,11 +240,11 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     @Override
     public Object visitIdAtomExp(FunParser.IdAtomExpContext ctx) {
         String variableName = ctx.ID().getText();
-        if (env.isMissing(variableName)) {
+        if (!fileTable.containsKey(variableName)) {
             debug("Warning: %s is missing from environment. Null was returned.\n", variableName);
             return NULL;
         }
-        return env.get(variableName);
+        return fileTable.get(variableName);
     }
 
     @Override
@@ -345,32 +348,32 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     public Object visitCallExp(FunParser.CallExpContext ctx) {
         String functionName = ctx.ID().getText();
         Object argument = visit(ctx.expression());
-        if (env.isMissing(functionName)) {
+        if (!fileTable.containsKey(functionName)) {
             debug("Warning: %s is missing in environment. Null was returned.", functionName);
             return NULL;
-        } else if (env.get(functionName) instanceof FunParser.ExpressionContext body) {
-            env.put("it", argument);
-            env.put("this", body);
+        } else if (fileTable.get(functionName) instanceof FunParser.ExpressionContext body) {
+            fileTable.put("it", argument);
+            fileTable.put("this", body);
             Object result = visit(body);
-            env.remove("this");
-            env.remove("it");
+            fileTable.remove("this");
+            fileTable.remove("it");
             return result;
         } else {
-            return env.get(functionName);
+            return fileTable.get(functionName);
         }
     }
 
     @Override
     public Object visitThisExp(FunParser.ThisExpContext ctx) {
-        if (env.isMissing("this")) {
+        if (!fileTable.containsKey("this")) {
             debug("Warning: 'this' is missing in environment. Null was returned.");
             return NULL;
-        } else if (env.get("this") instanceof FunParser.ExpressionContext body) {
+        } else if (fileTable.get("this") instanceof FunParser.ExpressionContext body) {
             var argument = visit(ctx.expression());
-            var oldIt = env.get("it");
-            env.put("it", argument);
+            var oldIt = fileTable.get("it");
+            fileTable.put("it", argument);
             Object result = visit(body);
-            env.put("it", oldIt);
+            fileTable.put("it", oldIt);
             return result;
         } else {
             debug("Warning: 'this' is missing in environment. Null was returned.");
@@ -382,8 +385,14 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     public Object visitDerefExp(FunParser.DerefExpContext ctx) {
         Object base = visit(ctx.expression(0));
         Object key = visit(ctx.expression(1));
-        if (base instanceof Table table && table.containsKey(key)) {
-            return table.get(key);
+        if (base instanceof Table t) {
+            if (t.containsKey(key)) {
+                return t.get(key);
+            } else if (key instanceof Table ktable) {
+                Table result = new Table();
+                t.entrySet().stream().filter(e -> ktable.containsValue(e.getKey())).map(Map.Entry::getValue).forEach(result::put);
+                return result;
+            }
         }
         debug("Warning: Dereference of %s is missing in table. Null was returned.\n", key);
         return NULL;

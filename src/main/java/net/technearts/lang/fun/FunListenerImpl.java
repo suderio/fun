@@ -367,22 +367,22 @@ public class FunListenerImpl extends FunBaseListener {
 
     @Override
     public void enterEveryRule(ParserRuleContext ctx) {
-        System.out.println("enterEveryRule(ctx)");
+        super.enterEveryRule(ctx);
     }
 
     @Override
     public void exitEveryRule(ParserRuleContext ctx) {
-        System.out.println("exitEveryRule(ctx)");
+        super.exitEveryRule(ctx);
     }
 
     @Override
     public void visitTerminal(TerminalNode node) {
-        System.out.println("visitTerminal(node)");
+        super.visitTerminal(node);
     }
 
     @Override
     public void visitErrorNode(ErrorNode node) {
-        System.out.println("visitErrorNode(node)");
+        super.visitErrorNode(node);
     }
 }
 

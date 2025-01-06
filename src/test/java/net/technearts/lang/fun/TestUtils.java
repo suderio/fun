@@ -52,4 +52,11 @@ public class TestUtils {
             AssertionFailureBuilder.assertionFailure().message(null).expected(expected).actual(actual).buildAndThrow();
         }
     }
+
+    public static void assertAll(Table table) {
+        table.values().stream().filter(o -> o instanceof Boolean b && !b).forEach(o -> AssertionFailureBuilder.assertionFailure().message(null).expected(true).actual(false).buildAndThrow());
+        if (table.values().stream().noneMatch(o -> o instanceof Boolean)) {
+            AssertionFailureBuilder.assertionFailure().message("At least one test expected.").expected("#tests > 0").actual("#tests = 0").buildAndThrow();
+        }
+    }
 }

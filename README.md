@@ -20,7 +20,7 @@ Welcome to the **Fun Language** reference manual! This guide provides a comprehe
 
 ### File
 
-A **Fun Language** program is a sequence of **assignments** or **expressions**, separated by semicolons (`;`). Example:
+A **Fun Language** program is a sequence of **expressions**, separated by semicolons (`;`). Example:
 
 ```fun
 x : 42;
@@ -30,7 +30,7 @@ result : y * 2;
 
 ### Assignments
 
-A variable is assigned using `:`. The left-hand side is the identifier, and the right-hand side is an expression.
+A variable is assigned using `:`. The left-hand side is the identifier, and the right-hand side is an expression. An assignment is also an expression that returns its right-hand side value.
 
 ```fun
 name : "John Doe";
@@ -127,11 +127,11 @@ age : 30;
 
 ### Miscellaneous
 
-| Operator | Description            | Example         |
-|----------|------------------------|-----------------|
-| `$`      | String substitution    | `"Hello $0" $ [42]` |
-| `..`     | Numeric range          | `1..5`          |
-| `.`      | Table dereference      | `table.key`     |
+| Operator | Description         | Example         |
+|----------|---------------------|-----------------|
+| `$`      | String substitution | `"Hello $0" $ [42]` |
+| `..`     | Numeric range       | `1..5`          |
+| `.`      | Table filter        | `table.key`     |
 
 ---
 

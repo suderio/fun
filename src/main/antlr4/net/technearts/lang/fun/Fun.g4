@@ -4,11 +4,12 @@ file                : (assign SEMICOLON)*                                       
                     ;
 
 assign              : ID ASSIGN expression                                          #assignExp
-                    | ID ASSIGN LCURBR op=expression RCURBR                         #operatorExp
+                    //| ID ASSIGN unaryOperator                                       #operatorExp
                     | expression                                                    #expressionExp
                     ;
-
+//unaryOperator       : LCURBR op=expression RCURBR;
 expression          : LPAREN expression RPAREN                                      #parenthesisExp
+                    | LCURBR op=expression RCURBR                                   #operatorExp
                     | expression DEREF expression                                   #derefExp
                     | <assoc=right> (PLUS|MINUS|NOT|INC|DEC) expression             #unaryExp
                     | <assoc=right> expression EXP expression                       #powerExp
