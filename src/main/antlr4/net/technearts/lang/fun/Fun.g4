@@ -4,10 +4,8 @@ file                : (assign SEMICOLON)*                                       
                     ;
 
 assign              : ID ASSIGN expression                                          #assignExp
-                    //| ID ASSIGN unaryOperator                                       #operatorExp
                     | expression                                                    #expressionExp
                     ;
-//unaryOperator       : LCURBR op=expression RCURBR;
 expression          : LPAREN expression RPAREN                                      #parenthesisExp
                     | LCURBR op=expression RCURBR                                   #operatorExp
                     | expression DEREF expression                                   #derefExp
@@ -25,10 +23,10 @@ expression          : LPAREN expression RPAREN                                  
                     | expression (OR_SHORT) expression                              #orShortExp
                     | expression (OR) expression                                    #orExp
                     | <assoc=right> expression NULLTEST expression                  #nullTestExp
-                    | <assoc=right> expression TEST expression                      #testExp
+                    | <assoc=right> expression TEST                                 #testExp
                     | expression (SUM|SUB|MULT|DIV|MOD) expression                  #assignOpExp
                     | expression (SEPARATOR expression)+                            #tableConcatSepExp
-                    | LBRACK (expression)* RBRACK                                   #tableConstructExp
+                    | LBRACK (expression|keyValue)* RBRACK                          #tableConstructExp
                     | expression RANGE expression                                   #rangeExp
                     | ID                                                            #idAtomExp
                     | ID expression                                                 #callExp
@@ -38,16 +36,16 @@ expression          : LPAREN expression RPAREN                                  
                     | TRUE                                                          #trueLiteral
                     | FALSE                                                         #falseLiteral
                     | NULL                                                          #nullLiteral
-                    | INTEGER                                                       #integerLiteral
                     | DECIMAL                                                       #decimalLiteral
+                    | INTEGER                                                       #integerLiteral
                     | IT                                                            #itAtomLiteral
                     ;
-
+keyValue            : ID ASSIGN expression;
 // Whitespace
-NEWLINE            : '\r\n' | '\r' | '\n' ;
-WS                 : [\r\n\t ]+ -> channel(HIDDEN) ;
-COMMENT            : '#' [.]*? NEWLINE -> channel(HIDDEN)  ;
-BLOCK_COMMENT : NEWLINE? [ \t]* '###' .*? NEWLINE [ \t]* '###' -> channel(HIDDEN);
+NEWLINE             : '\r\n' | '\r' | '\n' ;
+WS                  : [\r\n\t ]+ -> channel(HIDDEN) ;
+COMMENT             : '#' [.]*? NEWLINE -> channel(HIDDEN)  ;
+BLOCK_COMMENT       : NEWLINE? [ \t]* '###' .*? NEWLINE [ \t]* '###' -> channel(HIDDEN);
 
 // Keywords
 THIS                : 'this' ;

@@ -14,6 +14,8 @@ import static net.technearts.lang.fun.ElementWrapper.wrap;
 public class FunVisitorImpl extends FunBaseVisitor<Object> {
     private final ExecutionEnvironment env;
     private final Table fileTable;
+    @SuppressWarnings("all")
+    private final static String KEY_PATTERN = "\\$\\{([a-zA-Z_][a-zA-Z0-9_]*)\\}";
 
     public FunVisitorImpl(ExecutionEnvironment env) {
         this.env = env;
@@ -85,12 +87,12 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         var start = wrap(visit(ctx.expression(0)));
         var end = wrap(visit(ctx.expression(1)));
         Table range = new Table();
-        if (start.getInteger().compareTo(end.getInteger()) > 0) {
-            for (var i = start.getInteger(); i.compareTo(end.getInteger()) >= 0; i = i.subtract(BigInteger.ONE)) {
+        if (start.getInteger().compareTo(end.getInteger()) <= 0) {
+            for (var i = start.getInteger(); i.compareTo(end.getInteger()) <= 0; i = i.add(BigInteger.ONE)) {
                 range.put(i);
             }
         } else {
-            for (var i = start.getInteger(); i.compareTo(end.getInteger()) <= 0; i = i.add(BigInteger.ONE)) {
+            for (var i = start.getInteger(); i.compareTo(end.getInteger()) >= 0; i = i.subtract(BigInteger.ONE)) {
                 range.put(i);
             }
         }
@@ -204,7 +206,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     @Override
     public Object visitStringLiteral(FunParser.StringLiteralContext ctx) {
         String rawString = ctx.SIMPLESTRING().getText().replaceAll("^\"|\"$", "");
-        Pattern pattern = Pattern.compile("\\$\\{([a-zA-Z_][a-zA-Z0-9_]*)\\}");
+        Pattern pattern = Pattern.compile(KEY_PATTERN);
         Matcher matcher = pattern.matcher(rawString);
         StringBuilder result = new StringBuilder();
         while (matcher.find()) {
@@ -306,6 +308,9 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         for (var expression : ctx.expression()) {
             table.put(visit(expression));
         }
+        for (var keyValue : ctx.keyValue()) {
+            table.put(keyValue.ID(), visit(keyValue.expression()));
+        }
         return table;
     }
 
@@ -383,29 +388,61 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitDerefExp(FunParser.DerefExpContext ctx) {
-        Object base = visit(ctx.expression(0));
-        Object key = visit(ctx.expression(1));
-        if (base instanceof Table t) {
-            if (t.containsKey(key)) {
-                return t.get(key);
-            } else if (key instanceof Table ktable) {
+        Object left = visit(ctx.expression(0));
+        Object right = visit(ctx.expression(1));
+        if (left instanceof Table t) {
+            if (t.containsKey(right)) {
+                return t.get(right);
+            } else if (right instanceof Table ktable) {
                 Table result = new Table();
-                t.entrySet().stream().filter(e -> ktable.containsValue(e.getKey())).map(Map.Entry::getValue).forEach(result::put);
+                for (Map.Entry<Object, Object> e : t.entrySet()) {
+                    if (e.getValue().equals(ktable.get(e.getKey()))) {
+                        result.put(e.getKey(), e.getValue());
+                    }
+                }
+                return result;
+            } else if (right instanceof FunParser.ExpressionContext body) {
+                Table result = new Table();
+                t.forEach((k, v) -> {
+                    var oldIt = fileTable.get("it");
+                    fileTable.put("it", k);
+                    var filterTest = wrap(visit(body));
+                    fileTable.put("it", oldIt);
+                    if (filterTest.getBoolean()) {
+                        result.put(v);
+                    }
+                });
+                return result;
+            }
+        } else if (right instanceof Table t) {
+            if (t.containsValue(left)) {
+                return t.get(left);
+            } else if (left instanceof FunParser.ExpressionContext body) {
+                Table result = new Table();
+                t.forEach((k, v) -> {
+                    var oldIt = fileTable.get("it");
+                    fileTable.put("it", v);
+                    var filterTest = wrap(visit(body));
+                    fileTable.put("it", oldIt);
+                    if (filterTest.getBoolean()) {
+                        result.put(v);
+                    }
+                });
                 return result;
             }
         }
-        debug("Warning: Dereference of %s is missing in table. Null was returned.\n", key);
+        debug("Warning: Dereference of %s is missing in table. Null was returned.\n", right);
         return NULL;
     }
 
     @Override
     public Object visitTestExp(FunParser.TestExpContext ctx) {
-        var condition = wrap(visit(ctx.expression(0)));
+        var condition = wrap(visit(ctx.expression()));
         if (condition.isNull()) {
             debug("Warning: Test with null condition.");
             return NULL;
         } else {
-            return condition.getBoolean() ? condition.getBoolean() : wrap(visit(ctx.expression(1))).getBoolean();
+            return condition.getBoolean();
         }
     }
 

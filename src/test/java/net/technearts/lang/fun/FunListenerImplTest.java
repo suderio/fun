@@ -109,11 +109,11 @@ class FunListenerImplTest {
     @Test
     void testTestExpressions() {
         var table = evaluate("""
-                null ? 42 ?? true;
+                null ? ?? true;
                 
-                10 ? 42;
+                10 ?;
                 
-                (1 = 0) ? 2;
+                ~(1 = 0) ?;
                 """);
 
         assertAll(table);
@@ -267,12 +267,32 @@ class FunListenerImplTest {
                 
                 y: [1 2 3];
                 
+                1 = x.y.0;
+                
+                2 = x.y.1;
+                
+                3 = x.y.2;
+                
+                """);
+        assertAll(table);
+    }
+
+    @Test
+    void testTableDerefOp() {
+        var table = evaluate("""
+                x: [1 2 3 "4"];
+                
+                y: {it < 2 && it > 0};
+                
                 2 = x.y.0;
                 
-                3 = x.y.1;
+                1 = y.x.0;
                 
-                4 = x.y.2;
+                "4" = y.x.1;
                 
+                "4" = [1 2 3 "4"].{it > 2}.0;
+                
+                3 = {it > 2}.[1 2 3 "4"].0;
                 """);
         assertAll(table);
     }
