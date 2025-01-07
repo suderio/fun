@@ -1,6 +1,226 @@
-# Fun
+# Fun Language - Reference Manual
 
-Some ideas and design goals:
+Welcome to the **Fun Language** reference manual! This guide provides a comprehensive and user-friendly overview of the language, covering syntax, operators, data types, and constructs. **Fun Language** is designed to be expressive, flexible, and easy to use, supporting arithmetic operations, logic, table manipulation, and more.
+
+---
+
+## Table of Contents
+
+1. [Basic Structure](#basic-structure)
+2. [Data Types](#data-types)
+3. [Operators](#operators)
+4. [Tables](#tables)
+5. [Functions and Unary Operators](#functions-and-unary-operators)
+6. [Strings and Substitutions](#strings-and-substitutions)
+7. [Comments](#comments)
+
+---
+
+## Basic Structure
+
+### File
+
+A **Fun Language** program is a sequence of **expressions**, separated by semicolons (`;`). Example:
+
+```fun
+x : 42;
+y : x + 8;
+result : y * 2;
+```
+
+### Assignments
+
+A variable is assigned using `:`. The left-hand side is the identifier, and the right-hand side is an expression. An assignment is also an expression that returns its right-hand side value.
+
+```fun
+name : "John Doe";
+age : 30;
+```
+
+---
+
+## Data Types
+
+### Supported Literals
+
+1. **Integers**:
+   ```fun
+   x : 42;
+   ```
+
+2. **Decimals**:
+   ```fun
+   pi : 3.14;
+   ```
+
+3. **Strings**:
+  - **Simple**: Enclosed in double quotes (`"`).
+  - **Multiline (DocStrings)**: Enclosed in `"""`.
+
+   ```fun
+   simpleString : "Hello, World!";
+   docString : """
+       Line 1
+       Line 2
+   """;
+   ```
+
+4. **Booleans**:
+   ```fun
+   flag : true;
+   ```
+
+5. **Null**:
+   ```fun
+   value : null;
+   ```
+
+6. **Special Identifiers**:
+  - `this`: Refers to the body of a unary operator.
+  - `it`: The argument of unary operators.
+
+---
+
+## Operators
+
+### Arithmetic
+
+| Operator | Description       | Example       |
+|----------|-------------------|---------------|
+| `+`      | Addition          | `3 + 2`       |
+| `-`      | Subtraction       | `5 - 1`       |
+| `*`      | Multiplication    | `4 * 2`       |
+| `/`      | Division          | `8 / 4`       |
+| `%`      | Modulo            | `5 % 2`       |
+| `**`     | Exponentiation    | `2 ** 3`      |
+
+### Extended Assignment
+
+| Operator | Description                | Example       |
+|----------|----------------------------|---------------|
+| `+=`     | Addition and Assignment    | `x += 2`      |
+| `-=`     | Subtraction and Assignment | `x -= 1`      |
+| `*=`     | Multiplication and Assignment | `x *= 3`    |
+| `/=`     | Division and Assignment    | `x /= 4`      |
+| `%=`     | Modulo and Assignment      | `x %= 5`      |
+
+### Logical
+
+| Operator | Description       | Example           |
+|----------|-------------------|-------------------|
+| `&&`     | Short-circuit AND | `true && false`   |
+| `\|\|`   | Short-circuit OR  | `true \|\| false` |
+| `&`      | Bitwise AND       | `x & y`           |
+| `\|`     | Bitwise OR        | `x \| y`          |
+| `^`      | Bitwise XOR       | `x ^ y`           |
+
+### Comparison
+
+| Operator | Description            | Example        |
+|----------|------------------------|----------------|
+| `=`      | Equal to               | `x = y`        |
+| `<>`, `~=` | Not equal to          | `x <> y`       |
+| `<`      | Less than              | `x < y`        |
+| `<=`     | Less than or equal to  | `x <= y`       |
+| `>`      | Greater than           | `x > y`        |
+| `>=`     | Greater than or equal to | `x >= y`     |
+
+### Miscellaneous
+
+| Operator | Description         | Example         |
+|----------|---------------------|-----------------|
+| `$`      | String substitution | `"Hello $0" $ [42]` |
+| `..`     | Numeric range       | `1..5`          |
+| `.`      | Table filter        | `table.key`     |
+
+---
+
+## Tables
+
+### Construction
+
+Tables are lists of elements or key-value pairs, constructed with square brackets (`[]`):
+
+```fun
+table1 : [1 2 3];
+table2 : ["key": "value" "anotherKey": 42];
+```
+
+### Concatenation
+
+Use commas (`,`) to concatenate elements:
+
+```fun
+result : [1 2], [3 4];
+```
+
+---
+
+## Functions and Unary Operators
+
+### Defining Unary Operators
+
+Custom operators can be defined using `{}`:
+
+```fun
+increment : {it + 1};
+```
+
+### Invocation
+
+```fun
+result : increment 5;  # Result: 6
+```
+
+---
+
+## Strings and Substitutions
+
+### Positional Substitution
+
+Use `$N` to substitute values from a list:
+
+```fun
+message : "Value: $0, Double: $1" $ [42, 84];
+```
+
+### Variable Substitution
+
+Use `${var}` to substitute the value of a declared variable:
+
+```fun
+x : 10;
+message : "The value is ${x}";
+```
+
+---
+
+## Comments
+
+### Single-Line
+
+Start with `#`:
+
+```fun
+# This is a single-line comment
+```
+
+### Block
+
+Enclosed in `###`:
+
+```fun
+###
+This is a
+block comment.
+###
+```
+
+---
+
+This manual provides a complete overview of the **Fun Language**. Explore its capabilities and build powerful expressions effortlessly! 🚀
+
+## Some ideas and design goals:
 
 * Scripting language, used to fast development
 * Very few types:
@@ -11,10 +231,9 @@ Some ideas and design goals:
   * Function
   * Resource
 * Variables can hold any type (dynamic type, only values have type, not variables)
-* Errors return null; in any operation with null, null is returned
+* Errors return null; in (almost) any operation with null, null is returned
 * Resources are, e.g., files, stdin, stdout, etc.
 * Every Operator (i.e., Function) must be able to return a value for any type, if the value is null, it is an Error
-* 
 
 ## Running the application in dev mode
 

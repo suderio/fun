@@ -1,2 +1,4 @@
-greeting:
-  message: "hello"
+fun:
+  debug: true
+  math:
+    precision: 50
