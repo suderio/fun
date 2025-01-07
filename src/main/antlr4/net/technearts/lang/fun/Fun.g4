@@ -28,6 +28,8 @@ expression          : LPAREN expression RPAREN                                  
                     | expression (SEPARATOR expression)+                            #tableConcatSepExp
                     | LBRACK (expression|keyValue)* RBRACK                          #tableConstructExp
                     | expression RANGE expression                                   #rangeExp
+                    | expression REDIRECT expression                                #redirectWriteExp
+                    | REDIRECT expression                                           #redirectReadExp
                     | ID                                                            #idAtomExp
                     | ID expression                                                 #callExp
                     | THIS expression                                               #thisExp
@@ -38,6 +40,7 @@ expression          : LPAREN expression RPAREN                                  
                     | NULL                                                          #nullLiteral
                     | DECIMAL                                                       #decimalLiteral
                     | INTEGER                                                       #integerLiteral
+                    | URL                                                           #urlLiteral
                     | IT                                                            #itAtomLiteral
                     ;
 keyValue            : ID ASSIGN expression;
@@ -115,6 +118,7 @@ NULLTEST           : '??';
 
 // Identifiers
 ID                 : [_]+[A-Za-z0-9_]* | [A-Za-z]+[A-Za-z0-9_]*;
+URL                : (('http' | 'https' | 'ftp' | 'file') '://' (~[ \n\r\t])+);
 
 // Should not be used
 ANY                : . ;

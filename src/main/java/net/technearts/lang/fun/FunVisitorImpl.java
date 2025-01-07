@@ -446,6 +446,36 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         }
     }
 
+    //TODO?
+    @Override
+    public Object visitRedirectReadExp(FunParser.RedirectReadExpContext ctx) {
+        return super.visitRedirectReadExp(ctx);
+    }
+
+    //TODO
+    @Override
+    public Object visitRedirectWriteExp(FunParser.RedirectWriteExpContext ctx) {
+        // Avalia os operandos
+        Object left = visit(ctx.expression(0));
+        Object right = visit(ctx.expression(1));
+
+        if (!(right instanceof String url)) {
+            throw new RuntimeException("O lado direito do operador '@' deve ser uma URL válida.");
+        }
+
+        String content = (String) left;
+
+        var handler = RedirectHandler.url(url);
+
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            return handler.handleHttpOperation(content);
+        } else if (url.startsWith("file://")) {
+            return handler.handleFileOperation(content);
+        } else {
+            throw new RuntimeException("Esquema de URL não suportado: " + url);
+        }
+    }
+
     private void debug(String msg, Object... args) {
         if (env.isDebug()) {
             if (args.length == 0) {
