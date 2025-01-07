@@ -125,7 +125,6 @@
                 </executions>
                 <configuration>
                     <visitor>true</visitor>
-<!--                    <libDirectory>target/generated-sources/antlr4</libDirectory>-->
                 </configuration>
             </plugin>
         </plugins>
