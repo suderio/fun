@@ -109,11 +109,9 @@ class FunListenerImplTest {
     @Test
     void testTestExpressions() {
         var table = evaluate("""
-                null ? ?? true;
-                
-                10 ?;
-                
-                ~(1 = 0) ?;
+                                    null ? ?? true;
+                                    10 ?;
+                                    ~(1 = 0) ?;
                 """);
 
         assertAll(table);
@@ -143,9 +141,9 @@ class FunListenerImplTest {
     @Test
     void testDereferencing() {
         var table = evaluate("""
-                t : [1 2 3];
-                
-                2 = t.1;
+                                    t : [1 2 3 "4"];
+                                    2 = t.1;
+                                    "4" : t."1234".3;
                 """);
 
         assertAll(table);
@@ -163,9 +161,9 @@ class FunListenerImplTest {
     @Test
     void testCallOperators() {
         var table = evaluate("""
-                                    negate : { -it };
-                                    pos : { +it };
-                                    inv : { ~it };
+                                    negate : { -right };
+                                    pos : { +right };
+                                    inv : { ~right };
                                     -10 = negate 10;
                                     20 = pos 20;
                                     false = inv true;
@@ -185,7 +183,7 @@ class FunListenerImplTest {
     @Test
     void testOperators() {
         var table = evaluate("""
-                                    sq: { it * it };
+                                    sq: { right * right };
                                     16 = sq 4;
                 """);
         assertAll(table);
@@ -206,8 +204,8 @@ class FunListenerImplTest {
         var table = evaluate("""
                     x : 10;
                     y : 20;
-                    x += 5;
-                    y *= 2;
+                    x :+ 5;
+                    y :* 2;
                     x = 15;
                     y = 40;
                 """);
@@ -217,16 +215,11 @@ class FunListenerImplTest {
     @Test
     void testSubstExpression() {
         var table = evaluate("""
-                x : 10;
-                
-                y : "x: ${x}";
-                
-                z : "0: $0, 1: $1" $ [3 6];
-                
-                "x: 10" = y;
-                
-                "0: 3, 1: 6" $ [3 6] = z;
-                
+                                    x : 10;
+                                    y : "x: ${x}";
+                                    z : "0: $0, 1: $1" $ [3 6];
+                                    "x: 10" = y;
+                                    "0: 3, 1: 6" $ [3 6] = z;
                 """);
         assertAll(table);
     }
@@ -234,11 +227,9 @@ class FunListenerImplTest {
     @Test
     void testFibonacci() {
         var table = evaluate("""
-                fib : { [1 1].it ?? (this(it - 1)) + (this(it - 2)) };
-                
-                1 = fib 0;
-                
-                8 = fib 5;
+                                    fib : { [1 1].right ?? (this(right - 1)) + (this(right - 2)) };
+                                    1 = fib 0;
+                                    8 = fib 5;
                 """);
 
         assertAll(table);
@@ -247,14 +238,10 @@ class FunListenerImplTest {
     @Test
     void testFatorial() {
         var table = evaluate("""
-                fat : { [1 1].it ?? (this(it - 1)) * it };
-                
-                1 = (fat 1);
-                
-                6 = (fat 3);
-                
-                120 = (fat 5);
-                
+                                    fat : { [1 1].right ?? (this(right - 1)) * right };
+                                    1 = (fat 1);
+                                    6 = (fat 3);
+                                    120 = (fat 5);
                 """);
 
         assertAll(table);
@@ -263,16 +250,11 @@ class FunListenerImplTest {
     @Test
     void testTableDerefTable() {
         var table = evaluate("""
-                x: [1 2 3 4 5];
-                
-                y: [1 2 3];
-                
-                1 = x.y.0;
-                
-                2 = x.y.1;
-                
-                3 = x.y.2;
-                
+                                    x: [1 2 3 4 5];
+                                    y: [1 2 3];
+                                    1 = x.y.0;
+                                    2 = x.y.1;
+                                    3 = x.y.2;
                 """);
         assertAll(table);
     }
@@ -280,19 +262,23 @@ class FunListenerImplTest {
     @Test
     void testTableDerefOp() {
         var table = evaluate("""
-                x: [1 2 3 "4"];
-                
-                y: {it < 2 && it > 0};
-                
-                2 = x.y.0;
-                
-                1 = y.x.0;
-                
-                "4" = y.x.1;
-                
-                "4" = [1 2 3 "4"].{it > 2}.0;
-                
-                3 = {it > 2}.[1 2 3 "4"].0;
+                                    x: [1 2 3 "4"];
+                                    y: {right < 2 && right > 0};
+                                    2 = x.y.0;
+                                    1 = y.x.0;
+                                    "4" = y.x.1;
+                                    "4" = [1 2 3 "4"].{right > 2}.0;
+                                    3 = {right > 2}.[1 2 3 "4"].0;
+                """);
+        assertAll(table);
+    }
+
+    @Test
+    void testBiOp() {
+        var table = evaluate("""
+                                    idiv: {right / left};
+                                    x: (3 idiv 0);
+                                    0 = x;
                 """);
         assertAll(table);
     }

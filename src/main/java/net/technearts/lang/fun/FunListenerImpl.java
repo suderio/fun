@@ -86,16 +86,6 @@ public class FunListenerImpl extends FunBaseListener {
     }
 
     @Override
-    public void enterItAtomLiteral(FunParser.ItAtomLiteralContext ctx) {
-        System.out.println("enterItAtomLiteral(ctx)");
-    }
-
-    @Override
-    public void exitItAtomLiteral(FunParser.ItAtomLiteralContext ctx) {
-        System.out.println("exitItAtomLiteral(ctx)");
-    }
-
-    @Override
     public void enterTrueLiteral(FunParser.TrueLiteralContext ctx) {
         System.out.println("enterTrueLiteral(ctx)");
     }

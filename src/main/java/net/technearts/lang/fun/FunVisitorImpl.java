@@ -71,11 +71,16 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         }
         var currentValue = wrap(fileTable.get(variableName));
         Object result = switch (ctx.getChild(1).getText()) {
-            case "+=" -> currentValue.add(rightValue);
-            case "-=" -> currentValue.subtract(rightValue);
-            case "*=" -> currentValue.multiply(rightValue);
-            case "/=" -> currentValue.divide(rightValue);
-            case "%=" -> currentValue.remainder(rightValue);
+            case ":+" -> currentValue.add(rightValue);
+            case ":-" -> currentValue.subtract(rightValue);
+            case ":*" -> currentValue.multiply(rightValue);
+            case ":/" -> currentValue.divide(rightValue);
+            case ":%" -> currentValue.remainder(rightValue);
+            case ":<<" -> currentValue.shiftLeft(rightValue);
+            case ":>>" -> currentValue.shiftRight(rightValue);
+            case ":&" -> currentValue.getBoolean() && rightValue.getBoolean();
+            case ":^" -> currentValue.getBoolean() ^ rightValue.getBoolean();
+            case ":|" -> currentValue.getBoolean() || rightValue.getBoolean();
             default -> throw new RuntimeException("Operador de atribuição desconhecido: " + ctx.getChild(1).getText());
         };
         fileTable.put(variableName, result);
@@ -113,12 +118,22 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitItAtomLiteral(FunParser.ItAtomLiteralContext ctx) {
-        if (!fileTable.containsKey("it")) {
-            debug("Warning: 'it' is missing from %s. Null was pushed into the stack.\n", ctx.getText());
+    public Object visitRightAtomLiteral(FunParser.RightAtomLiteralContext ctx) {
+        if (!fileTable.containsKey("right")) {
+            debug("Warning: 'right' is missing from %s. Null was pushed into the stack.\n", ctx.getText());
             return NULL;
         } else {
-            return fileTable.get("it");
+            return fileTable.get("right");
+        }
+    }
+
+    @Override
+    public Object visitLeftAtomLiteral(FunParser.LeftAtomLiteralContext ctx) {
+        if (!fileTable.containsKey("left")) {
+            debug("Warning: 'left' is missing from %s. Null was pushed into the stack.\n", ctx.getText());
+            return NULL;
+        } else {
+            return fileTable.get("left");
         }
     }
 
@@ -357,11 +372,11 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
             debug("Warning: %s is missing in environment. Null was returned.", functionName);
             return NULL;
         } else if (fileTable.get(functionName) instanceof FunParser.ExpressionContext body) {
-            fileTable.put("it", argument);
+            fileTable.put("right", argument);
             fileTable.put("this", body);
             Object result = visit(body);
             fileTable.remove("this");
-            fileTable.remove("it");
+            fileTable.remove("right");
             return result;
         } else {
             return fileTable.get(functionName);
@@ -375,10 +390,10 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
             return NULL;
         } else if (fileTable.get("this") instanceof FunParser.ExpressionContext body) {
             var argument = visit(ctx.expression());
-            var oldIt = fileTable.get("it");
-            fileTable.put("it", argument);
+            var oldIt = fileTable.get("right");
+            fileTable.put("right", argument);
             Object result = visit(body);
-            fileTable.put("it", oldIt);
+            fileTable.put("right", oldIt);
             return result;
         } else {
             debug("Warning: 'this' is missing in environment. Null was returned.");
@@ -401,13 +416,21 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
                     }
                 }
                 return result;
+            } else if (right instanceof String kstring) {
+                Table result = new Table();
+                for (Map.Entry<Object, Object> e : t.entrySet()) {
+                    if (e.getKey() instanceof BigInteger idx && e.getValue().equals(String.valueOf(kstring.charAt(idx.intValue())))) {
+                        result.put(e.getKey(), e.getValue());
+                    }
+                }
+                return result;
             } else if (right instanceof FunParser.ExpressionContext body) {
                 Table result = new Table();
                 t.forEach((k, v) -> {
-                    var oldIt = fileTable.get("it");
-                    fileTable.put("it", k);
+                    var oldIt = fileTable.get("right");
+                    fileTable.put("right", k);
                     var filterTest = wrap(visit(body));
-                    fileTable.put("it", oldIt);
+                    fileTable.put("right", oldIt);
                     if (filterTest.getBoolean()) {
                         result.put(v);
                     }
@@ -417,19 +440,44 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         } else if (right instanceof Table t) {
             if (t.containsValue(left)) {
                 return t.get(left);
+            } else if (left instanceof String kstring) {
+                StringBuilder result = new StringBuilder();
+                for (Map.Entry<Object,Object> e : t.entrySet()) {
+                    if (e.getKey() instanceof BigInteger idx && e.getValue().equals(String.valueOf(kstring.charAt(idx.intValue())))) {
+                        result.append(e.getValue());
+                    }
+                }
+                return result.toString();
             } else if (left instanceof FunParser.ExpressionContext body) {
                 Table result = new Table();
                 t.forEach((k, v) -> {
-                    var oldIt = fileTable.get("it");
-                    fileTable.put("it", v);
+                    var oldIt = fileTable.get("right");
+                    fileTable.put("right", v);
                     var filterTest = wrap(visit(body));
-                    fileTable.put("it", oldIt);
+                    fileTable.put("right", oldIt);
                     if (filterTest.getBoolean()) {
                         result.put(v);
                     }
                 });
                 return result;
             }
+        } else if (left instanceof String s) {
+            if (right instanceof BigInteger idx && idx.compareTo(BigInteger.valueOf(s.length())) < 0) {
+                return String.valueOf(s.charAt(idx.intValue()));
+            } else if (right instanceof String kstring) {
+                if (s.contains(kstring)) {
+                    return kstring;
+                } else if (kstring.contains(s)) {
+                    return s;
+                } else return "";
+            }
+
+        } else if (right instanceof String s) {
+            if (s.contains(String.valueOf(left))) {
+                return left.toString();
+            }
+        } else if (left.equals(right) || right.equals(BigInteger.ZERO)) {
+            return left;
         }
         debug("Warning: Dereference of %s is missing in table. Null was returned.\n", right);
         return NULL;
