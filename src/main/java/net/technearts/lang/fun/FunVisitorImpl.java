@@ -384,6 +384,29 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     }
 
     @Override
+    public Object visitBiCallExp(FunParser.BiCallExpContext ctx) {
+        String functionName = ctx.ID().getText();
+        Object left = visit(ctx.expression(0));
+        Object right = visit(ctx.expression(1));
+        if (!fileTable.containsKey(functionName)) {
+            debug("Warning: %s is missing in environment. Null was returned.", functionName);
+            return NULL;
+        } else if (fileTable.get(functionName) instanceof FunParser.ExpressionContext body) {
+            fileTable.put("left", left);
+            fileTable.put("right", right);
+            fileTable.put("this", body);
+            Object result = visit(body);
+            fileTable.remove("this");
+            fileTable.remove("right");
+            fileTable.remove("left");
+            return result;
+        } else {
+            return fileTable.get(functionName);
+        }
+    }
+
+    @Override
+    // todo binary ops
     public Object visitThisExp(FunParser.ThisExpContext ctx) {
         if (!fileTable.containsKey("this")) {
             debug("Warning: 'this' is missing in environment. Null was returned.");

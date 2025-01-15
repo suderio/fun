@@ -282,4 +282,15 @@ class FunListenerImplTest {
                 """);
         assertAll(table);
     }
+
+    @Test
+    void testReturnOp() {
+        var table = evaluate("""
+                                    f: {right + {right + left}};
+                                    g: f 1;
+                                    x: (1 g 1);
+                                    3 = x;
+                """);
+        assertAll(table);
+    }
 }
