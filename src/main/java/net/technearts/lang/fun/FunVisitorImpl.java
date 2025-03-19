@@ -372,11 +372,12 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
             debug("Warning: %s is missing in environment. Null was returned.", functionName);
             return NULL;
         } else if (fileTable.get(functionName) instanceof FunParser.ExpressionContext body) {
-            fileTable.put("right", argument);
-            fileTable.put("this", body);
-            Object result = visit(body);
-            fileTable.remove("this");
-            fileTable.remove("right");
+//            fileTable.put("right", argument);
+//            fileTable.put("this", body);
+//            Object result = visit(body);
+//            fileTable.remove("this");
+//            fileTable.remove("right");
+            var result = visitBody(null, body, argument);
             return result;
         } else {
             return fileTable.get(functionName);
@@ -392,13 +393,14 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
             debug("Warning: %s is missing in environment. Null was returned.", functionName);
             return NULL;
         } else if (fileTable.get(functionName) instanceof FunParser.ExpressionContext body) {
-            fileTable.put("left", left);
-            fileTable.put("right", right);
-            fileTable.put("this", body);
-            Object result = visit(body);
-            fileTable.remove("this");
-            fileTable.remove("right");
-            fileTable.remove("left");
+//            fileTable.put("left", left);
+//            fileTable.put("right", right);
+//            fileTable.put("this", body);
+//            Object result = visit(body);
+//            fileTable.remove("this");
+//            fileTable.remove("right");
+//            fileTable.remove("left");
+            var result = visitBody(left, body, right);
             return result;
         } else {
             return fileTable.get(functionName);
@@ -413,10 +415,11 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
             return NULL;
         } else if (fileTable.get("this") instanceof FunParser.ExpressionContext body) {
             var argument = visit(ctx.expression());
-            var oldIt = fileTable.get("right");
-            fileTable.put("right", argument);
-            Object result = visit(body);
-            fileTable.put("right", oldIt);
+//            var oldIt = fileTable.get("right");
+//            fileTable.put("right", argument);
+//            Object result = visit(body);
+//            fileTable.put("right", oldIt);
+            var result = visitBody(null, body, argument);
             return result;
         } else {
             debug("Warning: 'this' is missing in environment. Null was returned.");
@@ -428,75 +431,77 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     public Object visitDerefExp(FunParser.DerefExpContext ctx) {
         Object left = visit(ctx.expression(0));
         Object right = visit(ctx.expression(1));
-        if (left instanceof Table t) {
-            if (t.containsKey(right)) {
-                return t.get(right);
-            } else if (right instanceof Table ktable) {
+        if (left instanceof Table lTable) {
+            if (lTable.containsKey(right)) {
+                return lTable.get(right);
+            } else if (right instanceof Table rTable) {
                 Table result = new Table();
-                for (Map.Entry<Object, Object> e : t.entrySet()) {
-                    if (e.getValue().equals(ktable.get(e.getKey()))) {
+                for (Map.Entry<Object, Object> e : lTable.entrySet()) {
+                    if (e.getValue().equals(rTable.get(e.getKey()))) {
                         result.put(e.getKey(), e.getValue());
                     }
                 }
                 return result;
-            } else if (right instanceof String kstring) {
+            } else if (right instanceof String rString) {
                 Table result = new Table();
-                for (Map.Entry<Object, Object> e : t.entrySet()) {
-                    if (e.getKey() instanceof BigInteger idx && e.getValue().equals(String.valueOf(kstring.charAt(idx.intValue())))) {
+                for (Map.Entry<Object, Object> e : lTable.entrySet()) {
+                    if (e.getKey() instanceof BigInteger idx && e.getValue().equals(String.valueOf(rString.charAt(idx.intValue())))) {
                         result.put(e.getKey(), e.getValue());
                     }
                 }
                 return result;
             } else if (right instanceof FunParser.ExpressionContext body) {
                 Table result = new Table();
-                t.forEach((k, v) -> {
-                    var oldIt = fileTable.get("right");
-                    fileTable.put("right", k);
-                    var filterTest = wrap(visit(body));
-                    fileTable.put("right", oldIt);
+                lTable.forEach((k, v) -> {
+//                    var oldIt = fileTable.get("right");
+//                    fileTable.put("right", k);
+//                    var filterTest = wrap(visit(body));
+//                    fileTable.put("right", oldIt);
+                    var filterTest = wrap(visitBody(null, body, k));
                     if (filterTest.getBoolean()) {
                         result.put(v);
                     }
                 });
                 return result;
             }
-        } else if (right instanceof Table t) {
-            if (t.containsValue(left)) {
-                return t.get(left);
-            } else if (left instanceof String kstring) {
+        } else if (right instanceof Table rTable) {
+            if (rTable.containsValue(left)) {
+                return rTable.get(left);
+            } else if (left instanceof String lString) {
                 StringBuilder result = new StringBuilder();
-                for (Map.Entry<Object,Object> e : t.entrySet()) {
-                    if (e.getKey() instanceof BigInteger idx && e.getValue().equals(String.valueOf(kstring.charAt(idx.intValue())))) {
+                for (Map.Entry<Object,Object> e : rTable.entrySet()) {
+                    if (e.getKey() instanceof BigInteger idx && e.getValue().equals(String.valueOf(lString.charAt(idx.intValue())))) {
                         result.append(e.getValue());
                     }
                 }
                 return result.toString();
             } else if (left instanceof FunParser.ExpressionContext body) {
                 Table result = new Table();
-                t.forEach((k, v) -> {
-                    var oldIt = fileTable.get("right");
-                    fileTable.put("right", v);
-                    var filterTest = wrap(visit(body));
-                    fileTable.put("right", oldIt);
+                rTable.forEach((k, v) -> {
+                    //var oldIt = fileTable.get("right");
+                    //fileTable.put("right", v);
+                    //var filterTest = wrap(visit(body));
+                    //fileTable.put("right", oldIt);
+                    var filterTest = wrap(visitBody(null, body, v));
                     if (filterTest.getBoolean()) {
                         result.put(v);
                     }
                 });
                 return result;
             }
-        } else if (left instanceof String s) {
-            if (right instanceof BigInteger idx && idx.compareTo(BigInteger.valueOf(s.length())) < 0) {
-                return String.valueOf(s.charAt(idx.intValue()));
-            } else if (right instanceof String kstring) {
-                if (s.contains(kstring)) {
-                    return kstring;
-                } else if (kstring.contains(s)) {
-                    return s;
+        } else if (left instanceof String lString) {
+            if (right instanceof BigInteger idx && idx.compareTo(BigInteger.valueOf(lString.length())) < 0) {
+                return String.valueOf(lString.charAt(idx.intValue()));
+            } else if (right instanceof String rString) {
+                if (lString.contains(rString)) {
+                    return rString;
+                } else if (rString.contains(lString)) {
+                    return lString;
                 } else return "";
             }
 
-        } else if (right instanceof String s) {
-            if (s.contains(String.valueOf(left))) {
+        } else if (right instanceof String rString) {
+            if (rString.contains(String.valueOf(left))) {
                 return left.toString();
             }
         } else if (left.equals(right) || right.equals(BigInteger.ZERO)) {
@@ -547,6 +552,19 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         }
     }
 
+    private Object visitBody(Object left, FunParser.ExpressionContext body, Object right) {
+        var oldLeft = fileTable.get("left");
+        var oldRight = fileTable.get("right");
+        var oldThis = fileTable.get("this");
+        fileTable.put("left", left);
+        fileTable.put("right", right);
+        fileTable.put("this", body);
+        Object result = visit(body);
+        fileTable.put("left", oldLeft);
+        fileTable.put("right", oldRight);
+        fileTable.put("this", oldThis);
+        return result;
+    }
     private void debug(String msg, Object... args) {
         if (env.isDebug()) {
             if (args.length == 0) {

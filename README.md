@@ -93,7 +93,8 @@ docString : """
 1. **Special Identifiers**:
 
 - `this`: Refers to the body of a unary operator.
-- `it`: The argument of unary operators.
+- `right`: The right argument, or the argument of prefix operators.
+- `left`: The left argument, or the argument of postfix operators.
 
 ---
 
@@ -114,20 +115,27 @@ Arithmetic operators always return a number (integer or decimal).
 
 ### Extended Assignment
 
-| Operator | Description                   | Example  |
-| -------- | ----------------------------- | -------- |
-| `+=`     | Addition and Assignment       | `x += 2` |
-| `-=`     | Subtraction and Assignment    | `x -= 1` |
-| `*=`     | Multiplication and Assignment | `x *= 3` |
-| `/=`     | Division and Assignment       | `x /= 4` |
-| `%=`     | Modulo and Assignment         | `x %= 5` |
+| Operator | Description                   | Example   |
+|----------|-------------------------------|-----------|
+| `:+`     | Addition and Assignment       | `x :+ 2`  |
+| `:-`     | Subtraction and Assignment    | `x :- 1`  |
+| `:*`     | Multiplication and Assignment | `x :* 3`  |
+| `:/`     | Division and Assignment       | `x :/ 4`  |
+| `:%`     | Modulo and Assignment         | `x :% 5`  |
+| `--`     | Increment and Assignment      | `--x`     |
+| `++`     | Decrement and Assignment      | `++x`     |
+| `:>>`    | Right Shift and Assignment    | `x :>> 5` |
+| `:<<`    | Left Shift and Assignment     | `x :<< 5` |
+| `:&`     | AND and Assignment            | `x :& y`  |
+| `:^`     | XOR and Assignment            | `x :^ y`  |
+| `:\|`    | OR and Assignment             | `x :\| y` |
 
 ### Logical
 
 Logical operators always return a Boolean.
 
 | Operator | Description       | Example           |
-| -------- | ----------------- | ----------------- |
+|----------|-------------------|-------------------|
 | `&&`     | Short-circuit AND | `true && false`   |
 | `\|\|`   | Short-circuit OR  | `true \|\| false` |
 | `&`      | Bitwise AND       | `x & y`           |
@@ -139,7 +147,7 @@ Logical operators always return a Boolean.
 Comparison operators always return a Boolean.
 
 | Operator   | Description              | Example  |
-| ---------- | ------------------------ | -------- |
+|------------|--------------------------|----------|
 | `=`        | Equal to                 | `x = y`  |
 | `<>`, `~=` | Not equal to             | `x <> y` |
 | `<`        | Less than                | `x < y`  |
@@ -150,13 +158,15 @@ Comparison operators always return a Boolean.
 ### Miscellaneous
 
 | Operator | Description         | Example             |
-| -------- | ------------------- | ------------------- |
+|----------|---------------------|---------------------|
 | `$`      | String substitution | `"Hello $0" $ [42]` |
 | `..`     | Numeric range       | `1..5`              |
 | `.`      | Table filter        | `table.key`         |
 | `@`      | Redirect            | `@ stdin`           |
 | `?`      | Test                | `(1 = 0) ?`         |
 | `??`     | Null Test           | `x ?? 42`           |
+| `?:`     | Elvis               | `x ?: 42`           |
+| `->`     | Map                 | `[1 2 3] -> sum`    |
 
 ---
 
@@ -177,7 +187,8 @@ table2 : ["key": "value" "anotherKey": 42];
 Commas (`,`) can be used to concatenate elements into tables:
 
 ```fun
-result : [1 2], [3 4]; #[[1 2] [3 4]]
+result : [1 2], [3 4]; 
+# [[1 2] [3 4]]
 ```
 
 ---
@@ -189,13 +200,14 @@ result : [1 2], [3 4]; #[[1 2] [3 4]]
 Custom operators can be defined using `{}`:
 
 ```fun
-increment : {it + 1};
+increment : {right + 1};
 ```
 
 ### Invocation
 
 ```fun
-result : increment 5;  # Result: 6
+result : increment 5;  
+# result: 6
 ```
 
 ### Recursion
@@ -203,7 +215,7 @@ result : increment 5;  # Result: 6
 Every operator defines a `this` operator that references itself.
 
 ```fun
-factorial : {[1 1].it ?? (this(it - 1)) * it};
+factorial : {[1 1].right ?? (this(right - 1)) * right};
 ```
 
 ---
@@ -265,7 +277,6 @@ its capabilities and build powerful expressions effortlessly! 🚀
   - Table (String subtype)
   - Function
   - Resource
-  - URL
 - Variables can hold any type (dynamic type, only values have type, not variables)
 - Errors return null; in (almost) any operation with null, null is returned
 - Resources are, e.g., files, stdin, stdout, etc.
@@ -283,21 +294,15 @@ You can run your application in dev mode that enables live coding using:
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_** Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
-
 ---
 
-## Packaging and running the application
+## Packaging and running the application - Quarkus
 
 The application can be packaged using:
 
 ```shell script
 ./mvnw package
 ```
-
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the
-`target/quarkus-app/lib/` directory.
 
 The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
 
@@ -331,39 +336,3 @@ You can then execute your native executable with: `./target/lang-1.0.0-SNAPSHOT-
 If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
 
 ---
-
-## Related Guides
-
-- Picocli ([guide](https://quarkus.io/guides/picocli)): Develop command line
-  applications with Picocli
-- YAML Configuration ([guide](https://quarkus.io/guides/config-yaml)): Use
-  YAML to configure your Quarkus application
-
----
-
-## Provided Code
-
-### YAML Config
-
-Configure your application with YAML
-
-[Related guide section...](https://quarkus.io/guides/config-reference#configuration-examples)
-
-The Quarkus application configuration is located in `src/main/resources/application.yml`.
-
-### Picocli Example
-
-Hello and goodbye are civilization fundamentals. Let's not forget it with this
-example picocli application by changing the `command` and `parameters`.
-
-[Related guide section...](https://quarkus.io/guides/picocli#command-line-application-with-multiple-commands)
-
-Also for picocli applications the dev mode is supported. When running dev mode,
-the picocli application is executed and on press of the Enter key, is restarted.
-
-As picocli applications will often require arguments to be passed on the
-commandline, this is also possible in dev mode via:
-
-```shell script
-./mvnw quarkus:dev -Dquarkus.args='Quarky'
-```

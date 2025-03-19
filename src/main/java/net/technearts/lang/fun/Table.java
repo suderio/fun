@@ -1,12 +1,12 @@
 package net.technearts.lang.fun;
 
 import java.math.BigInteger;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 import static java.math.BigInteger.valueOf;
 import static java.util.Objects.requireNonNull;
 
-public class Table extends HashMap<Object, Object> {
+public class Table extends LinkedHashMap<Object, Object> {
     private int lastIndex;
     private boolean stackOn = true;
     private String name;

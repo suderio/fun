@@ -1,51 +1,53 @@
 grammar Fun;
 
-file                : (assign SEMICOLON)*                                                   #fileTable
+file                : (assign SEMICOLON)*                                                           #fileTable
                     ;
 
-assign              : ID ASSIGN expression                                                  #assignExp
-                    | expression                                                            #expressionExp
+assign              : ID ASSIGN expression                                                          #assignExp
+                    | expression                                                                    #expressionExp
                     ;
-expression          : LPAREN expression RPAREN                                              #parenthesisExp
-                    | LCURBR op=expression RCURBR                                           #operatorExp
-                    | expression DEREF expression                                           #derefExp
-                    | <assoc=right> (PLUS|MINUS|NOT|INC|DEC) expression                     #unaryExp
-                    | <assoc=right> expression EXP expression                               #powerExp
-                    | expression (ASTERISK|SLASH|PERCENT) expression                        #mulDivModExp
-                    | expression (PLUS|MINUS) expression                                    #addSubExp
-                    | expression DOLAR expression                                           #substExp
-                    | expression (RSHIFT|LSHIFT) expression                                 #shiftExp
-                    | expression (LT|LE|GE|GT) expression                                   #comparisonExp
-                    | expression (EQ|NE) expression                                         #equalityExp
-                    | expression (AND_SHORT) expression                                     #andShortExp
-                    | expression (AND) expression                                           #andExp
-                    | expression XOR expression                                             #xorExp
-                    | expression (OR_SHORT) expression                                      #orShortExp
-                    | expression (OR) expression                                            #orExp
-                    | <assoc=right> expression NULLTEST expression                          #nullTestExp
-                    | <assoc=right> expression TEST                                         #testExp
-                    | expression (SUM|SUB|MULT|DIV|MOD|LSH|RSH|ANDA|XORA|ORA) expression    #assignOpExp
-                    | expression ID expression                                              #biCallExp
-                    | expression (SEPARATOR expression)+                                    #tableConcatSepExp
-                    | LBRACK (expression|keyValue)* RBRACK                                  #tableConstructExp
-                    | expression RANGE expression                                           #rangeExp
-                    | expression REDIRECT expression                                        #redirectWriteExp
-                    | REDIRECT expression                                                   #redirectReadExp
-                    | ID                                                                    #idAtomExp
-                    | ID expression                                                         #callExp
-                    | THIS expression                                                       #thisExp
-                    | SIMPLESTRING                                                          #stringLiteral
-                    | DOCSTRING                                                             #docStringLiteral
-                    | TRUE                                                                  #trueLiteral
-                    | FALSE                                                                 #falseLiteral
-                    | NULL                                                                  #nullLiteral
-                    | DECIMAL                                                               #decimalLiteral
-                    | INTEGER                                                               #integerLiteral
-                    | URL                                                                   #urlLiteral
-                    | LEFT                                                                  #leftAtomLiteral
-                    | RIGHT                                                                 #rightAtomLiteral
+expression          : LPAREN expression RPAREN                                                      #parenthesisExp
+                    | LCURBR op=expression RCURBR                                                   #operatorExp
+                    | expression DEREF expression                                                   #derefExp
+                    | <assoc=right> (PLUS|MINUS|NOT|INC|DEC) expression                             #unaryExp
+                    | <assoc=right> expression EXP expression                                       #powerExp
+                    | expression (ASTERISK|SLASH|PERCENT) expression                                #mulDivModExp
+                    | expression (PLUS|MINUS) expression                                            #addSubExp
+                    | expression DOLAR expression                                                   #substExp
+                    | expression (RSHIFT|LSHIFT) expression                                         #shiftExp
+                    | expression (LT|LE|GE|GT) expression                                           #comparisonExp
+                    | expression (EQ|NE) expression                                                 #equalityExp
+                    | expression (AND_SHORT) expression                                             #andShortExp
+                    | expression (AND) expression                                                   #andExp
+                    | expression XOR expression                                                     #xorExp
+                    | expression (OR_SHORT) expression                                              #orShortExp
+                    | expression (OR) expression                                                    #orExp
+                    | <assoc=right> expression NULLTEST expression                                  #nullTestExp
+                    | expression (ASUM|ASUB|AMULT|ADIV|AMOD|ALSH|ARSH|AAND|AXOR|AOR) expression     #assignOpExp
+                    | expression ID expression                                                      #biCallExp
+                    | expression (SEPARATOR expression)+                                            #tableConcatSepExp
+                    | LBRACK (expression|keyValue)* RBRACK                                          #tableConstructExp
+                    | expression RANGE expression                                                   #rangeExp
+                    | expression REDIRECT expression                                                #redirectWriteExp
+                    | REDIRECT expression                                                           #redirectReadExp
+                    | <assoc=right> expression TEST                                                 #testExp   
+                    | ID                                                                            #idAtomExp
+                    | ID expression                                                                 #callExp
+                    | THIS expression                                                               #thisExp
+                    | SIMPLESTRING                                                                  #stringLiteral
+                    | DOCSTRING                                                                     #docStringLiteral
+                    | TRUE                                                                          #trueLiteral
+                    | FALSE                                                                         #falseLiteral
+                    | NULL                                                                          #nullLiteral
+                    | DECIMAL                                                                       #decimalLiteral
+                    | INTEGER                                                                       #integerLiteral
+                    | URL                                                                           #urlLiteral
+                    | LEFT                                                                          #leftAtomLiteral
+                    | RIGHT                                                                         #rightAtomLiteral
                     ;
+
 keyValue            : ID ASSIGN expression;
+
 // Whitespace
 NEWLINE             : '\r\n' | '\r' | '\n' ;
 WS                  : [\r\n\t ]+ -> channel(HIDDEN) ;
@@ -106,16 +108,16 @@ NE                 : '<>' | '~=';
 // OTHER
 LSHIFT             : '<<';
 RSHIFT             : '>>';
-SUM                : ':+';
-SUB                : ':-';
-MULT               : ':*';
-DIV                : ':/';
-MOD                : ':%';
-LSH                :':<<';
-RSH                :':>>';
-ANDA               : ':&';
-XORA               : ':^';
-ORA                : ':|';
+ASUM               : ':+';
+ASUB               : ':-';
+AMULT              : ':*';
+ADIV               : ':/';
+AMOD               : ':%';
+ALSH               :':<<';
+ARSH               :':>>';
+AAND               : ':&';
+AXOR               : ':^';
+AOR                : ':|';
 INC                : '++';
 DEC                : '--';
 RANGE              : '..';
@@ -125,6 +127,8 @@ DOLAR              : '$' ;
 TEST               : '?' ;
 NULLTEST           : '??';
 ELVIS              : '?:';
+MAP                : '->';
+
 
 // Identifiers
 ID                 : [_]+[A-Za-z0-9_]* | [A-Za-z]+[A-Za-z0-9_]*;
@@ -133,4 +137,4 @@ URL                : (('http' | 'https' | 'ftp' | 'file') '://' (~[ \n\r\t])+);
 // Should not be used
 ANY                : . ;
 
-// ?: <=> -> <-
+// <=> <-

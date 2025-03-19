@@ -143,7 +143,7 @@ class FunListenerImplTest {
         var table = evaluate("""
                                     t : [1 2 3 "4"];
                                     2 = t.1;
-                                    "4" : t."1234".3;
+                                    "4" = t."1234".3;
                 """);
 
         assertAll(table);
