@@ -41,7 +41,6 @@ public class Main implements Runnable {
     BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
     ExecutionEnvironment env = new ExecutionEnvironment(config);
     FunVisitorImpl visitor = new FunVisitorImpl(env);
-    FunListenerImpl listener = new FunListenerImpl();
 
     while (true) {
       try {
@@ -52,10 +51,10 @@ public class Main implements Runnable {
           break;
         }
 
-        Object result = evaluate(line, visitor);
-        out.printf("> %s\n", result);
+//        Object result = evaluate(line, visitor);
+//        out.printf("> %s\n", result);
 
-        var walk = walk(line, listener);
+        var walk = walk(line);
         out.printf("#NPR: %s\n", walk);
       } catch (Exception e) {
         System.err.println("Error: " + e.getMessage());
@@ -63,7 +62,8 @@ public class Main implements Runnable {
     }
   }
 
-  private String walk(String code, FunListenerImpl listener) {
+  public String walk(String code) {
+    FunListenerImpl listener = new FunListenerImpl();
     // Configuração do Lexer e Parser
     CharStream input = CharStreams.fromString(code);
     FunLexer lexer = new FunLexer(input);

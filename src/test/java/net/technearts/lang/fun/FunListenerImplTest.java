@@ -14,6 +14,7 @@ import java.math.BigInteger;
 import static net.technearts.lang.fun.TestUtils.assertAll;
 import static net.technearts.lang.fun.TestUtils.assertNumbersEqual;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FunListenerImplTest {
 
@@ -285,7 +286,12 @@ class FunListenerImplTest {
   }
 
   @Test
-  @Disabled
+  void testWalker() {
+    Main main = new Main();
+    main.walk("1 + 2;");
+  }
+
+  @Test
   void testReturnOp() {
     var table = evaluate("""
                             f: {right + {right + left}};
@@ -295,4 +301,5 @@ class FunListenerImplTest {
         """);
     assertAll(table);
   }
+
 }

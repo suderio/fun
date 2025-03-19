@@ -1,10 +1,9 @@
 package net.technearts.lang.fun;
 
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
-import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import net.technearts.lang.fun.FunParser.ExpressionExpContext;
+import net.technearts.lang.fun.FunParser.AddSubExpContext;
 
 public class FunListenerImpl extends FunBaseListener {
   private ParseTreeProperty<String> values = new ParseTreeProperty<>();
@@ -12,17 +11,12 @@ public class FunListenerImpl extends FunBaseListener {
 
   @Override
   public void visitTerminal(TerminalNode node) {
-    sb.append(node.getText());
+    sb.append("Node: %s\n".formatted(node.getText()));
   }
 
   @Override
-  public void exitEveryRule(ParserRuleContext ctx) {
-    sb.append("Rule Children: %s\n".formatted(ctx.getText()));
-  }
-
-  @Override
-  public void exitExpressionExp(ExpressionExpContext ctx) {
-    sb.append("Expression: %s\n".formatted(ctx.getText()));
+  public void enterAddSubExp(AddSubExpContext ctx) {
+    sb.append(ctx.left.toString()).append(ctx.right).append(ctx.expression(1));
   }
 
   @Override
