@@ -1,39 +1,48 @@
 grammar Fun;
 
-file                : (assign SEMICOLON)*                                                           #fileTable
+@parser::members {
+    private int operatorNesting = 0;
+
+    public boolean isInsideOperator() {
+        return operatorNesting > 0;
+    }
+}
+
+file                : (assign SEMICOLON)*                                                       #fileTable
                     ;
 
 assign              : ID ASSIGN expression                                                          #assignExp
                     | expression                                                                    #expressionExp
                     ;
 expression          : LPAREN expression RPAREN                                                      #parenthesisExp
-                    | LCURBR op=expression RCURBR                                                   #operatorExp
-                    | expression DEREF expression                                                   #derefExp
-                    | <assoc=right> (PLUS|MINUS|NOT|INC|DEC) expression                             #unaryExp
-                    | <assoc=right> expression EXP expression                                       #powerExp
-                    | expression (ASTERISK|SLASH|PERCENT) expression                                #mulDivModExp
-                    | expression (PLUS|MINUS) expression                                            #addSubExp
-                    | expression DOLAR expression                                                   #substExp
-                    | expression (RSHIFT|LSHIFT) expression                                         #shiftExp
-                    | expression (LT|LE|GE|GT) expression                                           #comparisonExp
-                    | expression (EQ|NE) expression                                                 #equalityExp
-                    | expression (AND_SHORT) expression                                             #andShortExp
-                    | expression (AND) expression                                                   #andExp
-                    | expression XOR expression                                                     #xorExp
-                    | expression (OR_SHORT) expression                                              #orShortExp
-                    | expression (OR) expression                                                    #orExp
-                    | <assoc=right> expression NULLTEST expression                                  #nullTestExp
-                    | expression (ASUM|ASUB|AMULT|ADIV|AMOD|ALSH|ARSH|AAND|AXOR|AOR) expression     #assignOpExp
-                    | expression ID expression                                                      #biCallExp
-                    | expression (SEPARATOR expression)+                                            #tableConcatSepExp
-                    | LBRACK (expression|keyValue)* RBRACK                                          #tableConstructExp
-                    | expression RANGE expression                                                   #rangeExp
-                    | expression REDIRECT expression                                                #redirectWriteExp
-                    | REDIRECT expression                                                           #redirectReadExp
-                    | <assoc=right> expression TEST                                                 #testExp   
+                    | LCURBR { operatorNesting++; } op=expression RCURBR { operatorNesting--; }     #operatorExp
+                    | left=expression DEREF right=expression                                        #derefExp
+                    | <assoc=right> (PLUS|MINUS|NOT|INC|DEC) right=expression                             #unaryExp
+                    | <assoc=right> left=expression EXP right=expression                                       #powerExp
+                    | left=expression (ASTERISK|SLASH|PERCENT) right=expression                                #mulDivModExp
+                    | left=expression (PLUS|MINUS) right=expression                                            #addSubExp
+                    | left=expression DOLAR right=expression                                                   #substExp
+                    | left=expression (RSHIFT|LSHIFT) right=expression                                         #shiftExp
+                    | left=expression (LT|LE|GE|GT) right=expression                                           #comparisonExp
+                    | left=expression (EQ|NE) right=expression                                                 #equalityExp
+                    | left=expression (AND_SHORT) right=expression                                             #andShortExp
+                    | left=expression (AND) right=expression                                                   #andExp
+                    | left=expression XOR right=expression                                                     #xorExp
+                    | left=expression (OR_SHORT) right=expression                                              #orShortExp
+                    | left=expression (OR) right=expression                                                    #orExp
+                    | <assoc=right> left=expression NULLTEST right=expression                                  #nullTestExp
+                    | left=expression (ASUM|ASUB|AMULT|ADIV|AMOD|ALSH|ARSH|AAND|AXOR|AOR) right=expression     #assignOpExp
+                    | left=expression ID right=expression                                                      #biCallExp
+                    | exp+=expression (SEPARATOR exp+=expression)+                                            #tableConcatSepExp
+                    | LBRACK (exp+=expression)* RBRACK                                          #tableConstructExp
+                    | left=expression RANGE right=expression                                                   #rangeExp
+                    | ID ASSIGN_KEY right=expression                                                           #keyValueExp
+                    | left=expression REDIRECT right=expression                                                #redirectWriteExp
+                    | REDIRECT right=expression                                                           #redirectReadExp
+                    | <assoc=right> left=expression TEST                                                 #testExp
                     | ID                                                                            #idAtomExp
-                    | ID expression                                                                 #callExp
-                    | THIS expression                                                               #thisExp
+                    | ID right=expression                                                                 #callExp
+                    | THIS right=expression                                                               #thisExp
                     | SIMPLESTRING                                                                  #stringLiteral
                     | DOCSTRING                                                                     #docStringLiteral
                     | TRUE                                                                          #trueLiteral
@@ -42,11 +51,9 @@ expression          : LPAREN expression RPAREN                                  
                     | DECIMAL                                                                       #decimalLiteral
                     | INTEGER                                                                       #integerLiteral
                     | URL                                                                           #urlLiteral
-                    | LEFT                                                                          #leftAtomLiteral
-                    | RIGHT                                                                         #rightAtomLiteral
+                    | {isInsideOperator()}? LEFT                                                    #leftAtomLiteral
+                    | {isInsideOperator()}? RIGHT                                                   #rightAtomLiteral
                     ;
-
-keyValue            : ID ASSIGN expression;
 
 // Whitespace
 NEWLINE             : '\r\n' | '\r' | '\n' ;
@@ -73,6 +80,7 @@ DOCSTRING          : '"""' .*? '"""';
 
 SEPARATOR          : ',' ;
 ASSIGN             : ':' ;
+ASSIGN_KEY         : '->' ;
 LPAREN             : '(' ;
 RPAREN             : ')' ;
 LBRACK             : '[' ;
@@ -127,7 +135,9 @@ DOLAR              : '$' ;
 TEST               : '?' ;
 NULLTEST           : '??';
 ELVIS              : '?:';
-MAP                : '->';
+MAP                :'-->';
+FILTER             :'-|-';
+REDUCE             :'<--';
 
 
 // Identifiers

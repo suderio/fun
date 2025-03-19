@@ -24,8 +24,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitShiftExp(FunParser.ShiftExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));
-        var right = wrap(visit(ctx.expression(1)));
+        var left = wrap(visit(ctx.left));
+        var right = wrap(visit(ctx.right));
 
         if (ctx.RSHIFT() != null) {
             return left.shiftRight(right);
@@ -38,8 +38,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitSubstExp(FunParser.SubstExpContext ctx) {
-        var baseObj = visit(ctx.expression(0));
-        var valuesObj = visit(ctx.expression(1));
+        var baseObj = visit(ctx.left);
+        var valuesObj = visit(ctx.right);
         if (!(baseObj instanceof String base)) {
             throw new RuntimeException("O lado esquerdo do operador '$' deve ser uma String.");
         }
@@ -64,8 +64,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
 
     public Object visitAssignOpExp(FunParser.AssignOpExpContext ctx) {
-        var rightValue = wrap(visit(ctx.expression(1)));
-        String variableName = ctx.expression(0).getText();
+        var rightValue = wrap(visit(ctx.right));
+        String variableName = ctx.left.getText();
         if (!fileTable.containsKey(variableName)) {
             return NULL;
         }
@@ -89,8 +89,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitRangeExp(FunParser.RangeExpContext ctx) {
-        var start = wrap(visit(ctx.expression(0)));
-        var end = wrap(visit(ctx.expression(1)));
+        var start = wrap(visit(ctx.left));
+        var end = wrap(visit(ctx.right));
         Table range = new Table();
         if (start.getInteger().compareTo(end.getInteger()) <= 0) {
             for (var i = start.getInteger(); i.compareTo(end.getInteger()) <= 0; i = i.add(BigInteger.ONE)) {
@@ -153,6 +153,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         return visit(ctx.expression());
     }
 
+    //TODO pode melhorar usando a lista exp?
     @Override
     public Object visitTableConcatSepExp(FunParser.TableConcatSepExpContext ctx) {
         var left = visit(ctx.expression(0));
@@ -169,8 +170,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitPowerExp(FunParser.PowerExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));
-        var right = wrap(visit(ctx.expression(1)));
+        var left = wrap(visit(ctx.left));
+        var right = wrap(visit(ctx.right));
         return left.pow(right);
     }
 
@@ -266,8 +267,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitAddSubExp(FunParser.AddSubExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));
-        var right = wrap(visit(ctx.expression(1)));
+        var left = wrap(visit(ctx.left));
+        var right = wrap(visit(ctx.right));
         return switch (ctx.getChild(1).getText()) {
             case "+" -> left.add(right);
             case "-" -> left.subtract(right);
@@ -277,8 +278,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitMulDivModExp(FunParser.MulDivModExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));
-        var right = wrap(visit(ctx.expression(1)));
+        var left = wrap(visit(ctx.left));
+        var right = wrap(visit(ctx.right));
         return switch (ctx.getChild(1).getText()) {
             case "*" -> left.multiply(right);
             case "/" -> left.divide(right);
@@ -289,8 +290,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitComparisonExp(FunParser.ComparisonExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));
-        var right = wrap(visit(ctx.expression(1)));
+        var left = wrap(visit(ctx.left));
+        var right = wrap(visit(ctx.right));
         return switch (ctx.getChild(1).getText()) {
             case "<" -> left.compareTo(right) < 0;
             case "<=" -> left.compareTo(right) <= 0;
@@ -302,8 +303,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitEqualityExp(FunParser.EqualityExpContext ctx) {
-        Object left = visit(ctx.expression(0));
-        Object right = visit(ctx.expression(1));
+        Object left = visit(ctx.left);
+        Object right = visit(ctx.right);
         return switch (ctx.getChild(1).getText()) {
             case "=" -> left.equals(right);
             case "<>", "~=" -> !left.equals(right);
@@ -313,8 +314,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitNullTestExp(FunParser.NullTestExpContext ctx) {
-        Object left = visit(ctx.expression(0));
-        return left != NULL ? left : visit(ctx.expression(1));
+        Object left = visit(ctx.left);
+        return left != NULL ? left : visit(ctx.right);
     }
 
     @Override
@@ -323,44 +324,41 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
         for (var expression : ctx.expression()) {
             table.put(visit(expression));
         }
-        for (var keyValue : ctx.keyValue()) {
-            table.put(keyValue.ID(), visit(keyValue.expression()));
-        }
         return table;
     }
 
     @Override
     public Object visitAndShortExp(FunParser.AndShortExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));
+        var left = wrap(visit(ctx.left));
         if (!left.getBoolean()) return false; // Short-circuit
-        return wrap(visit(ctx.expression(1))).getBoolean();
+        return wrap(visit(ctx.right)).getBoolean();
     }
 
     @Override
     public Object visitAndExp(FunParser.AndExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));
-        var right = wrap(visit(ctx.expression(1)));
+        var left = wrap(visit(ctx.left));
+        var right = wrap(visit(ctx.right));
         return left.getBoolean() && right.getBoolean();
     }
 
     @Override
     public Object visitXorExp(FunParser.XorExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));
-        var right = wrap(visit(ctx.expression(1)));
+        var left = wrap(visit(ctx.left));
+        var right = wrap(visit(ctx.right));
         return left.getBoolean() ^ right.getBoolean();
     }
 
     @Override
     public Object visitOrShortExp(FunParser.OrShortExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));
+        var left = wrap(visit(ctx.left));
         if (left.getBoolean()) return true;
-        return wrap(visit(ctx.expression(1))).getBoolean();
+        return wrap(visit(ctx.right)).getBoolean();
     }
 
     @Override
     public Object visitOrExp(FunParser.OrExpContext ctx) {
-        var left = wrap(visit(ctx.expression(0)));
-        var right = wrap(visit(ctx.expression(1)));
+        var left = wrap(visit(ctx.left));
+        var right = wrap(visit(ctx.right));
         return left.getBoolean() || right.getBoolean();
     }
 
@@ -377,8 +375,7 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 //            Object result = visit(body);
 //            fileTable.remove("this");
 //            fileTable.remove("right");
-            var result = visitBody(null, body, argument);
-            return result;
+            return visitBody(null, body, argument);
         } else {
             return fileTable.get(functionName);
         }
@@ -387,8 +384,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     @Override
     public Object visitBiCallExp(FunParser.BiCallExpContext ctx) {
         String functionName = ctx.ID().getText();
-        Object left = visit(ctx.expression(0));
-        Object right = visit(ctx.expression(1));
+        Object left = visit(ctx.left);
+        Object right = visit(ctx.right);
         if (!fileTable.containsKey(functionName)) {
             debug("Warning: %s is missing in environment. Null was returned.", functionName);
             return NULL;
@@ -429,8 +426,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
 
     @Override
     public Object visitDerefExp(FunParser.DerefExpContext ctx) {
-        Object left = visit(ctx.expression(0));
-        Object right = visit(ctx.expression(1));
+        Object left = visit(ctx.left);
+        Object right = visit(ctx.right);
         if (left instanceof Table lTable) {
             if (lTable.containsKey(right)) {
                 return lTable.get(right);
@@ -532,8 +529,8 @@ public class FunVisitorImpl extends FunBaseVisitor<Object> {
     @Override
     public Object visitRedirectWriteExp(FunParser.RedirectWriteExpContext ctx) {
         // Avalia os operandos
-        Object left = visit(ctx.expression(0));
-        Object right = visit(ctx.expression(1));
+        Object left = visit(ctx.left);
+        Object right = visit(ctx.right);
 
         if (!(right instanceof String url)) {
             throw new RuntimeException("O lado direito do operador '@' deve ser uma URL válida.");

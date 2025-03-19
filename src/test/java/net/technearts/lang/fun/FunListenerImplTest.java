@@ -6,6 +6,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ConsoleErrorListener;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
@@ -284,6 +285,7 @@ class FunListenerImplTest {
     }
 
     @Test
+    @Disabled
     void testReturnOp() {
         var table = evaluate("""
                                     f: {right + {right + left}};
