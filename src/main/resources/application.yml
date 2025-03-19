@@ -1,3 +1,9 @@
+quarkus:
+  application:
+    name: fun
+  banner:
+    enabled: false
+
 fun:
   debug: true
   math:

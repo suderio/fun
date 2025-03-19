@@ -55,7 +55,8 @@
         </dependency>
     </dependencies>
 
-    <build>
+  <build>
+    <finalName>fun</finalName>
         <plugins>
             <plugin>
                 <groupId>${quarkus.platform.group-id}</groupId>
