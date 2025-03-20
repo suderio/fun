@@ -16,7 +16,7 @@ public class FunListenerImpl extends FunBaseListener {
 
   @Override
   public void enterAddSubExp(AddSubExpContext ctx) {
-    sb.append(ctx.left.toString()).append(ctx.right).append(ctx.expression(1));
+    sb.append(ctx.left == null ? "-" : ctx.left.getText()).append(ctx.right == null ? "-" : ctx.right.getText());
   }
 
   @Override

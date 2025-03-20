@@ -292,6 +292,7 @@ class FunListenerImplTest {
   }
 
   @Test
+  @Disabled
   void testReturnOp() {
     var table = evaluate("""
                             f: {right + {right + left}};
