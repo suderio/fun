@@ -288,19 +288,9 @@ class FunListenerImplTest {
   @Test
   void testWalker() {
     Main main = new Main();
-    main.walk("1 + 2;");
-  }
-
-  @Test
-  @Disabled
-  void testReturnOp() {
-    var table = evaluate("""
-                            f: {right + {right + left}};
-                            g: f 1;
-                            x: (1 g 1);
-                            3 = x;
-        """);
-    assertAll(table);
+    System.out.printf(" # NPR: %s\n", main.walk("(-1 + 2 * (3 - 4) / 5 > (0,1,2));"));
+    System.out.printf(" # NPR: %s\n", main.walk("a : 3;"));
+    System.out.printf(" # NPR: %s\n", main.walk("{ (1, 1).right ?? (this(right - 1)) * right };"));
   }
 
 }

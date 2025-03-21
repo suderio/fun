@@ -50,12 +50,8 @@ public class Main implements Runnable {
           out.println("Goodbye!");
           break;
         }
-
-//        Object result = evaluate(line, visitor);
-//        out.printf("> %s\n", result);
-
-        var walk = walk(line);
-        out.printf("#NPR: %s\n", walk);
+        Object result = evaluate(line, visitor);
+        out.printf("> %s\n", result);
       } catch (Exception e) {
         System.err.println("Error: " + e.getMessage());
       }
@@ -76,7 +72,7 @@ public class Main implements Runnable {
     // Listener para transformar em notação pós-fixa
     ParseTreeWalker walker = new ParseTreeWalker();
     walker.walk(listener, tree);
-    return listener.toString();
+    return listener.getPostfix(tree);
   }
 
   private void executeScript(String scriptPath) {
